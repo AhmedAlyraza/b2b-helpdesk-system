@@ -1,7 +1,18 @@
 import { getCurrentUser } from "@/lib/auth";
 
+import { db } from "@/lib/db";
+
 export default async function DashboardPage() {
   const user = await getCurrentUser();
+
+  const fullUser = await db.user.findUnique({
+    where: {
+      id: user?.id,
+    },
+    include: {
+      organization: true,
+    },
+  });
 
   return (
     <div>
@@ -10,7 +21,12 @@ export default async function DashboardPage() {
       </h1>
 
       <p className="mt-4">
-        Logged in as: {user?.email}
+        Logged in as: {fullUser?.email}
+      </p>
+
+      <p>
+        Organization:{" "}
+        {fullUser?.organization?.name}
       </p>
     </div>
   );

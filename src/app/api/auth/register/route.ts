@@ -33,10 +33,19 @@ export async function POST(req: Request) {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // create user
+    const organization = await db.organization.create({
+      data: {
+        name: `${email.split("@")[0]}'s Organization`,
+      },
+    });
+
     const user = await db.user.create({
       data: {
         email,
         password: hashedPassword,
+        role: "ORG_ADMIN",
+
+        organizationId: organization.id,
       },
     });
 
