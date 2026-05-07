@@ -2,9 +2,9 @@
 
 import { useForm } from "react-hook-form";
 
-import { Button } from "@/src/components/ui/button";
-import { Input } from "@/src/components/ui/input";
-import { FormField } from "@/src/components/forms/form-field";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { FormField } from "@/components/forms/form-field";
 
 type RegisterForm = {
   email: string;

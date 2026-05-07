@@ -3,14 +3,14 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { Button } from "@/src/components/ui/button";
-import { Input } from "@/src/components/ui/input";
-import { FormField } from "@/src/components/forms/form-field";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { FormField } from "@/components/forms/form-field";
 
 import {
   loginSchema,
   LoginSchema,
-} from "@/src/features/auth/validation/login-schema";
+} from "@/features/auth/validation/login-schema";
 
 export default function LoginPage() {
   const {
@@ -22,12 +22,30 @@ export default function LoginPage() {
   });
 
   const onSubmit = async (data: LoginSchema) => {
-    console.log("Form Data:", data);
+  try {
+    const response = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
 
-    // fake delay (simulate API)
-    await new Promise((res) => setTimeout(res, 1000));
-  };
+    const result = await response.json();
 
+    if (!response.ok) {
+      alert(result.error || "Login failed");
+      return;
+    }
+
+    // redirect after successful login
+    window.location.href = "/dashboard";
+
+  } catch (error) {
+    console.error(error);
+    alert("Something went wrong");
+  }
+};
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
