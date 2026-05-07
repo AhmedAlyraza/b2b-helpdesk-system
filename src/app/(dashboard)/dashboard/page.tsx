@@ -1,7 +1,17 @@
-export default function DashboardPage() {
-    return (
-        <div className="p-10 text-2xl font-semibold">
-            Dashboard (Protected Area)
-        </div>
-    );
+import { getCurrentUser } from "@/lib/auth";
+
+export default async function DashboardPage() {
+  const user = await getCurrentUser();
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold">
+        Dashboard
+      </h1>
+
+      <p className="mt-4">
+        Logged in as: {user?.email}
+      </p>
+    </div>
+  );
 }

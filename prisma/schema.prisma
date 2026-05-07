@@ -13,9 +13,20 @@ model User {
   password  String
   name      String?
   role      Role     @default(CUSTOMER)
-
+  sessions Session[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  token     String   @unique
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  expiresAt DateTime
 }
 
 enum Role {
