@@ -1,3 +1,4 @@
+import Link from "next/link";
 export default function DashboardLayout({
   children,
 }: {
@@ -12,19 +13,13 @@ export default function DashboardLayout({
         </h2>
 
         <nav className="mt-6 space-y-2">
-          <a
-            href="/dashboard"
-            className="block rounded px-3 py-2 hover:bg-gray-800"
-          >
+          <Link href="/dashboard" className="block rounded px-3 py-2 hover:bg-gray-800">
             Dashboard
-          </a>
+          </Link>
 
-          <a
-            href="/tickets"
-            className="block rounded px-3 py-2 hover:bg-gray-800"
-          >
+          <Link href="/tickets" className="block rounded px-3 py-2 hover:bg-gray-800">
             Tickets
-          </a>
+          </Link>
         </nav>
       </aside>
 
