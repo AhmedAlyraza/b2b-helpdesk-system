@@ -1,5 +1,5 @@
 import Link from "next/link";
-
+import { TicketsFilters } from "@/features/tickets/components/tickets-filters";
 import {
   Plus,
   ChevronRight,
@@ -8,13 +8,59 @@ import {
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 
-export default async function TicketsPage() {
-  const user = await getCurrentUser();
+interface TicketsPageProps {
+  searchParams: Promise<{
+    search?: string;
 
+    status?: string;
+
+    priority?: string;
+  }>;
+}
+
+export default async function TicketsPage({
+  searchParams,
+}: TicketsPageProps) {
+  const user = await getCurrentUser();
+  const params =
+    await searchParams;
+
+  const search =
+    params.search || "";
+
+  const status =
+    params.status || "";
+
+  const priority =
+    params.priority || "";
   const tickets = await db.ticket.findMany({
     where: {
       organizationId:
         user?.organizationId,
+
+      ...(search && {
+        OR: [
+          {
+            title: {
+              contains: search,
+            },
+          },
+
+          {
+            description: {
+              contains: search,
+            },
+          },
+        ],
+      }),
+
+      ...(status && {
+        status,
+      }),
+
+      ...(priority && {
+        priority,
+      }),
     },
 
     orderBy: {
@@ -44,7 +90,11 @@ export default async function TicketsPage() {
           Create Ticket
         </Link>
       </div>
-
+      <TicketsFilters
+        search={search}
+        status={status}
+        priority={priority}
+      />
       {/* Tickets List */}
       <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
         {tickets.length === 0 ? (
@@ -89,14 +139,14 @@ export default async function TicketsPage() {
 
                     <span
                       className={`rounded-full px-3 py-1 text-xs font-medium ${ticket.status === "OPEN"
-                          ? "bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400"
+                        ? "bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400"
+                        : ticket.status ===
+                          "IN_PROGRESS"
+                          ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400"
                           : ticket.status ===
-                            "IN_PROGRESS"
-                            ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400"
-                            : ticket.status ===
-                              "RESOLVED"
-                              ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400"
-                              : "bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300"
+                            "RESOLVED"
+                            ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400"
+                            : "bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300"
                         }`}
                     >
                       {ticket.status.replace(
@@ -107,14 +157,14 @@ export default async function TicketsPage() {
 
                     <span
                       className={`rounded-full px-3 py-1 text-xs font-medium ${ticket.priority === "URGENT"
-                          ? "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400"
+                        ? "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400"
+                        : ticket.priority ===
+                          "HIGH"
+                          ? "bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400"
                           : ticket.priority ===
-                            "HIGH"
-                            ? "bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400"
-                            : ticket.priority ===
-                              "MEDIUM"
-                              ? "bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400"
-                              : "bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300"
+                            "MEDIUM"
+                            ? "bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400"
+                            : "bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300"
                         }`}
                     >
                       {ticket.priority}
