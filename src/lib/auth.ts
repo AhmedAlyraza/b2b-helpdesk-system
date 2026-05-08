@@ -3,23 +3,40 @@ import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 
 export async function getCurrentUser() {
-  const cookieStore = await cookies();
+  try {
+    const cookieStore = await cookies();
 
-  const sessionToken =
-    cookieStore.get("session")?.value;
+    const sessionToken =
+      cookieStore.get("session")?.value;
 
-  if (!sessionToken) return null;
+    console.log("SESSION TOKEN:", sessionToken);
 
-  const session = await db.session.findUnique({
-    where: {
-      token: sessionToken,
-    },
-    include: {
-      user: true,
-    },
-  });
+    if (!sessionToken) {
+      return null;
+    }
 
-  if (!session) return null;
+    const session =
+      await db.session.findUnique({
+        where: {
+          token: sessionToken,
+        },
 
-  return session.user;
+        include: {
+          user: true,
+        },
+      });
+
+    console.log("SESSION:", session);
+
+    if (!session) {
+      return null;
+    }
+
+    return session.user;
+
+  } catch (error) {
+    console.error(error);
+
+    return null;
+  }
 }

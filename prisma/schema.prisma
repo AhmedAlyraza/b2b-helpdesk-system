@@ -32,7 +32,11 @@ model User {
   assignedTickets Ticket[] @relation("AssignedTickets")
 
   sessions Session[]
-  
+  comments Comment[]
+  activities TicketActivity[]
+  notifications Notification[]
+  attachments Attachment[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -66,13 +70,81 @@ model Ticket {
   assignedToId String?
   assignedTo   User? @relation("AssignedTickets", fields: [assignedToId], references: [id])
 
+  comments Comment[]   
+  activities TicketActivity[] 
+  notifications Notification[]
+  attachments Attachment[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
+model Comment {
+  id        String   @id @default(uuid())
+
+  message   String
+
+  isInternal Boolean @default(false)
+  
+  ticketId  String
+  ticket    Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  authorId  String
+  author    User @relation(fields: [authorId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model TicketActivity {
+  id        String   @id @default(uuid())
+
+  type      String
+  message   String
+
+  ticketId  String
+  ticket    Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  actorId   String
+  actor     User @relation(fields: [actorId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+
+  title     String
+  message   String
+
+  read      Boolean @default(false)
+
+  userId    String
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  ticketId  String?
+  ticket    Ticket? @relation(fields: [ticketId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model Attachment {
+  id        String   @id @default(uuid())
+
+  name      String
+  url       String
+  size      Int
+
+  ticketId  String
+  ticket    Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  uploaderId String
+  uploader   User @relation(fields: [uploaderId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
 enum Role {
-  SUPER_ADMIN
-  ORG_ADMIN
+  ADMIN
   AGENT
   CUSTOMER
 }
