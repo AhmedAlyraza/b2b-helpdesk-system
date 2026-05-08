@@ -4,7 +4,10 @@ import {
   Plus,
   ChevronRight,
 } from "lucide-react";
-
+import {
+  TicketPriority,
+  TicketStatus,
+} from "@prisma/client";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 
@@ -22,6 +25,9 @@ export default async function TicketsPage({
   searchParams,
 }: TicketsPageProps) {
   const user = await getCurrentUser();
+  if (!user || !user.organizationId) {
+    return null;
+  }
   const params =
     await searchParams;
 
@@ -36,7 +42,7 @@ export default async function TicketsPage({
   const tickets = await db.ticket.findMany({
     where: {
       organizationId:
-        user?.organizationId,
+        user.organizationId,
 
       ...(search && {
         OR: [
@@ -55,11 +61,13 @@ export default async function TicketsPage({
       }),
 
       ...(status && {
-        status,
+        status:
+          status as TicketStatus,
       }),
 
       ...(priority && {
-        priority,
+        priority:
+          priority as TicketPriority,
       }),
     },
 
