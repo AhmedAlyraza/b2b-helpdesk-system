@@ -108,7 +108,7 @@ export function CommentForm({
                     <Send size={16} />
 
                     {isSubmitting
-                        ? "Sending..."
+                        ? "Posting reply..."
                         : "Send Reply"}
                 </button>
             </div>

@@ -79,7 +79,7 @@ export function TicketStatusSelect({
                         e.target.value
                     )
                 }
-                className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:border-zinc-600"
+                className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-zinc-400 disabled:opacity-70 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:border-zinc-600"
             >
                 {statuses.map((status) => (
                     <option
@@ -90,6 +90,11 @@ export function TicketStatusSelect({
                     </option>
                 ))}
             </select>
+            {loading && (
+                <p className="text-xs text-zinc-500">
+                    Updating status...
+                </p>
+            )}
         </div>
     );
 }

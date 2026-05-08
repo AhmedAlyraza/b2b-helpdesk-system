@@ -36,39 +36,34 @@ export default async function TicketDetailsPage({
 
     include: {
       assignedTo: true,
+
       comments: {
         include: {
-          assignedTo: true,
+          author: true,
+        },
 
-          comments: {
-            include: {
-              author: true,
-            },
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
 
-            orderBy: {
-              createdAt: "asc",
-            },
-          },
+      activities: {
+        include: {
+          actor: true,
+        },
 
-          activities: {
-            include: {
-              actor: true,
-            },
+        orderBy: {
+          createdAt: "desc",
+        },
+      },
 
-            orderBy: {
-              createdAt: "desc",
-            },
-          },
+      attachments: {
+        include: {
+          uploader: true,
+        },
 
-          attachments: {
-            include: {
-              uploader: true,
-            },
-
-            orderBy: {
-              createdAt: "desc",
-            },
-          },
+        orderBy: {
+          createdAt: "desc",
         },
       },
     },

@@ -63,7 +63,7 @@ export function UploadAttachment({
             <Upload size={16} />
 
             {loading
-                ? "Uploading..."
+                ? "Uploading file..."
                 : "Upload Attachment"}
 
             <input
