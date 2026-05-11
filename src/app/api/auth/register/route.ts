@@ -31,14 +31,14 @@ export async function POST(req: Request) {
 
     // hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-
+console.log("Register route hit");
     // create user
     const organization = await db.organization.create({
       data: {
         name: `${email.split("@")[0]}'s Organization`,
       },
     });
-
+console.log("User created");
     const user = await db.user.create({
       data: {
         email,
