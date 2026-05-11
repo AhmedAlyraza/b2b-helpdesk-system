@@ -27,19 +27,19 @@ export default async function AnalyticsPage() {
 
     const openTickets =
         tickets.filter(
-            (t) => t.status === "OPEN"
+            (ticket) => ticket.status === "OPEN"
         ).length;
 
     const resolvedTickets =
         tickets.filter(
-            (t) =>
-                t.status === "RESOLVED"
+            (ticket) =>
+                ticket.status === "RESOLVED"
         ).length;
 
     const urgentTickets =
         tickets.filter(
-            (t) =>
-                t.priority === "URGENT"
+            (ticket) =>
+                ticket.priority === "URGENT"
         ).length;
 
     // status analytics
@@ -47,16 +47,16 @@ export default async function AnalyticsPage() {
         {
             name: "Open",
             value: tickets.filter(
-                (t) =>
-                    t.status === "OPEN"
+                (ticket) =>
+                    ticket.status === "OPEN"
             ).length,
         },
 
         {
             name: "In Progress",
             value: tickets.filter(
-                (t) =>
-                    t.status ===
+                (ticket) =>
+                    ticket.status ===
                     "IN_PROGRESS"
             ).length,
         },
@@ -64,8 +64,8 @@ export default async function AnalyticsPage() {
         {
             name: "Resolved",
             value: tickets.filter(
-                (t) =>
-                    t.status ===
+                (ticket) =>
+                    ticket.status ===
                     "RESOLVED"
             ).length,
         },
@@ -73,8 +73,8 @@ export default async function AnalyticsPage() {
         {
             name: "Closed",
             value: tickets.filter(
-                (t) =>
-                    t.status ===
+                (ticket) =>
+                    ticket.status ===
                     "CLOSED"
             ).length,
         },
