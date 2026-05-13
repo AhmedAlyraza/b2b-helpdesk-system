@@ -11,58 +11,47 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-
+import { redirect } from "next/navigation";
+import { getCurrentTenantUser } from "@/lib/tenant";
 import { db } from "@/lib/db";
 
 export default async function DashboardPage() {
 
-  const tickets =
-    await db.ticket.findMany({
-      include: {
-        assignedTo: true,
-      },
-    });
+  const user = await getCurrentTenantUser();
 
-  const totalTickets =
-    tickets.length;
+  if (!user) {
+    redirect("/login");
+  }
 
-  const openTickets =
-    tickets.filter(
-      (ticket) =>
-        ticket.status === "OPEN"
-    ).length;
+  const tickets = await db.ticket.findMany({
+    where: {
+      organizationId: user.organizationId,
+    },
 
-  const resolvedTickets =
-    tickets.filter(
-      (ticket) =>
-        ticket.status === "RESOLVED"
-    ).length;
-
-  const closedTickets =
-    tickets.filter(
-      (ticket) =>
-        ticket.status === "CLOSED"
-    ).length;
+    include: {
+      assignedTo: true,
+    },
+  });
 
   const stats = [
     {
       title: "Total Tickets",
-      value: totalTickets,
+      value: tickets.length,
       icon: Ticket,
     },
     {
       title: "Open Tickets",
-      value: openTickets,
+      value: tickets.filter((ticket) => ticket.status === "OPEN").length,
       icon: AlertCircle,
     },
     {
       title: "Resolved",
-      value: resolvedTickets,
+      value: tickets.filter((ticket) => ticket.status === "RESOLVED").length,
       icon: CheckCircle2,
     },
     {
       title: "Closed Tickets",
-      value: closedTickets,
+      value: tickets.filter((ticket) => ticket.status === "CLOSED").length,
       icon: Clock3,
     },
   ];

@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { notFound } from "next/navigation";
 import { CommentForm } from "@/features/comments/components/comment-form";
 import { AssignTicketSelect } from "@/features/tickets/components/assign-ticket-select";
@@ -11,7 +12,7 @@ import {
 } from "lucide-react";
 
 import { db } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentTenantUser } from "@/lib/tenant";
 
 interface TicketDetailsPageProps {
   params: Promise<{
@@ -24,9 +25,9 @@ export default async function TicketDetailsPage({
 }: TicketDetailsPageProps) {
   const { ticketId } = await params;
 
-  const user = await getCurrentUser();
-  if (!user || !user.organizationId) {
-    notFound();
+  const user = await getCurrentTenantUser();
+  if (!user) {
+    redirect("/login");
   }
   const ticket = await db.ticket.findFirst({
     where: {
@@ -152,9 +153,9 @@ export default async function TicketDetailsPage({
                 </p>
 
                 <p className="text-sm font-medium">
-                  {new Date(
-                    ticket.createdAt
-                  ).toLocaleDateString()}
+                  {new Date(ticket.createdAt)
+                    .toISOString()
+                    .split("T")[0]}
                 </p>
               </div>
             </div>
@@ -218,7 +219,7 @@ export default async function TicketDetailsPage({
         </h2>
 
         <div className="mt-6 rounded-2xl border border-dashed border-zinc-300 p-10 text-center dark:border-zinc-700">
-          <div className="text-zinc-500">
+          <div className="space-y-6 text-zinc-500">
 
             <UploadAttachment
               ticketId={ticket.id}
@@ -296,9 +297,9 @@ export default async function TicketDetailsPage({
                           </p>
 
                           <span className="text-xs text-zinc-500">
-                            {new Date(
-                              activity.createdAt
-                            ).toLocaleString()}
+                            {new Date(activity.createdAt)
+                              .toISOString()
+                              .split("T")[0]}
                           </span>
                         </div>
                       </div>
@@ -349,9 +350,9 @@ export default async function TicketDetailsPage({
                             </span>
                           )}
                           <span className="text-xs text-zinc-500">
-                            {new Date(
-                              comment.createdAt
-                            ).toLocaleString()}
+                            {new Date(comment.createdAt)
+                              .toISOString()
+                              .split("T")[0]}
                           </span>
                         </div>
 

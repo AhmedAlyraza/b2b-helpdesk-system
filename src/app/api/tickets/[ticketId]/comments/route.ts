@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { db } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
+import { getAuthorizedTicket } from "@/lib/permissions";
 
 interface RouteContext {
   params: Promise<{
@@ -14,20 +13,22 @@ export async function POST(
   context: RouteContext
 ) {
   try {
-    const user = await getCurrentUser();
 
-    if (!user) {
+
+    const { ticketId } =
+      await context.params;
+    const authorized =
+      await getAuthorizedTicket(ticketId);
+
+    if (!authorized) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
       );
     }
 
-    const { ticketId } =
-      await context.params;
-
+    const { user, ticket } = authorized;
     const body = await req.json();
-
     const {
       message,
       isInternal,
@@ -40,23 +41,7 @@ export async function POST(
       );
     }
 
-    // organization-safe lookup
-    const ticket =
-      await db.ticket.findFirst({
-        where: {
-          id: ticketId,
 
-          organizationId:
-            user.organizationId!,
-        },
-      });
-
-    if (!ticket) {
-      return NextResponse.json(
-        { error: "Ticket not found" },
-        { status: 404 }
-      );
-    }
 
     const comment =
       await db.comment.create({

@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { db } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
+import { getAuthorizedTicket } from "@/lib/permissions";
 
-import { isAgent } from "@/lib/permissions";
+import { db } from "@/lib/db";
 
 import { createNotification } from "@/lib/notifications";
 
@@ -18,42 +17,36 @@ export async function PATCH(
     context: RouteContext
 ) {
     try {
-        const user = await getCurrentUser();
 
-        if (!user) {
+        const { ticketId } =
+            await context.params;
+
+        const authorized =
+            await getAuthorizedTicket(ticketId);
+
+        if (!authorized) {
             return NextResponse.json(
                 { error: "Unauthorized" },
                 { status: 401 }
             );
         }
 
-        if (!isAgent(user.role)) {
-            return NextResponse.json(
-                { error: "Forbidden" },
-                { status: 403 }
-            );
-        }
-
-        const { ticketId } =
-            await context.params;
+        const { user, ticket } = authorized;
 
         const body = await req.json();
 
         const { assigneeId } = body;
 
-        const ticket =
-            await db.ticket.findFirst({
-                where: {
-                    id: ticketId,
+        const assignedUser = await db.user.findFirst({
+            where: {
+                id: assigneeId,
+                organizationId: user.organizationId,
+            },
+        });
 
-                    organizationId:
-                        user.organizationId!,
-                },
-            });
-
-        if (!ticket) {
+        if (!assignedUser) {
             return NextResponse.json(
-                { error: "Ticket not found" },
+                { error: "Assigned user not found" },
                 { status: 404 }
             );
         }
@@ -65,8 +58,7 @@ export async function PATCH(
                 },
 
                 data: {
-                    assignedToId:
-                        assigneeId || null,
+                    assignedToId: assignedUser.id || null,
                 },
             });
 

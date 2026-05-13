@@ -9,7 +9,8 @@ import {
   TicketStatus,
 } from "@prisma/client";
 import { db } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { getCurrentTenantUser } from "@/lib/tenant";
 
 interface TicketsPageProps {
   searchParams: Promise<{
@@ -24,10 +25,14 @@ interface TicketsPageProps {
 export default async function TicketsPage({
   searchParams,
 }: TicketsPageProps) {
-  const user = await getCurrentUser();
-  if (!user || !user.organizationId) {
-    return null;
+
+  const user =
+    await getCurrentTenantUser();
+
+  if (!user) {
+    redirect("/login");
   }
+
   const params =
     await searchParams;
 
@@ -39,6 +44,7 @@ export default async function TicketsPage({
 
   const priority =
     params.priority || "";
+
   const tickets = await db.ticket.findMany({
     where: {
       organizationId:
@@ -69,6 +75,11 @@ export default async function TicketsPage({
         priority:
           priority as TicketPriority,
       }),
+    },
+
+    include: {
+      assignedTo: true,
+      createdBy: true,
     },
 
     orderBy: {
