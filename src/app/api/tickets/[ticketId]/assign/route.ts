@@ -4,6 +4,8 @@ import { getAuthorizedTicket } from "@/lib/permissions";
 
 import { db } from "@/lib/db";
 
+import { createActivity } from "@/lib/activity";
+
 import { createNotification } from "@/lib/notifications";
 
 interface RouteContext {
@@ -65,18 +67,21 @@ export async function PATCH(
         if (assigneeId) {
             await createNotification({
                 title: "Ticket Assigned",
-
                 message: `You were assigned ticket: ${ticket.title}`,
-
                 userId: assigneeId,
-
                 ticketId: ticket.id,
             });
         }
 
-        return NextResponse.json(
-            updatedTicket
-        );
+        // 🚨 ADD ACTIVITY LOG HERE
+        await createActivity({
+            ticketId: ticket.id,
+            actorId: user.id,
+            type: "TICKET_ASSIGNED",
+            message: `Ticket assigned to ${assignedUser.name || assignedUser.email}`,
+        });
+
+        return NextResponse.json(updatedTicket);
 
 
     } catch (error) {

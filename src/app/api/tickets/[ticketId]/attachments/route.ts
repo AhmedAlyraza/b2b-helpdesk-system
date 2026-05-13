@@ -7,7 +7,10 @@ import { v4 as uuid } from "uuid";
 import { NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
+
+import { getAuthorizedTicket } from "@/lib/permissions";
+
+import { createActivity } from "@/lib/activity";
 
 interface RouteContext {
     params: Promise<{
@@ -20,34 +23,28 @@ export async function POST(
     context: RouteContext
 ) {
     try {
-        const user = await getCurrentUser();
-
-        if (!user) {
-            return NextResponse.json(
-                { error: "Unauthorized" },
-                { status: 401 }
-            );
-        }
 
         const { ticketId } =
             await context.params;
 
-        const ticket =
-            await db.ticket.findFirst({
-                where: {
-                    id: ticketId,
+        const authorized =
+            await getAuthorizedTicket(
+                ticketId
+            );
 
-                    organizationId:
-                        user.organizationId!,
-                },
-            });
-
-        if (!ticket) {
+        if (!authorized) {
             return NextResponse.json(
-                { error: "Ticket not found" },
-                { status: 404 }
+                {
+                    error: "Unauthorized",
+                },
+                {
+                    status: 401,
+                }
             );
         }
+
+        const { user, ticket } =
+            authorized;
 
         const formData =
             await req.formData();
@@ -120,20 +117,21 @@ export async function POST(
             await db.attachment.create({
                 data: {
                     name: file.name,
-
                     url: `/uploads/${fileName}`,
-
                     size: file.size,
-
-                    ticketId,
-
+                    ticketId: ticket.id, 
                     uploaderId: user.id,
                 },
             });
 
-        return NextResponse.json(
-            attachment
-        );
+        await createActivity({
+            ticketId: ticket.id,
+            actorId: user.id,
+            type: "ATTACHMENT_UPLOADED",
+            message: `Uploaded attachment: ${attachment.name}`,
+        });
+
+        return NextResponse.json(attachment);
 
     } catch (error) {
         console.error(error);

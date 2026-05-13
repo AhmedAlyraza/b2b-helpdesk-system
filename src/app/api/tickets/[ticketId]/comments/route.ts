@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { getAuthorizedTicket } from "@/lib/permissions";
+import { createActivity } from "@/lib/activity";
+import { db } from "@/lib/db";
 
 interface RouteContext {
   params: Promise<{
@@ -47,15 +49,21 @@ export async function POST(
       await db.comment.create({
         data: {
           message,
-
-          isInternal:
-            isInternal ?? false,
-
-          ticketId,
-
+          isInternal: isInternal ?? false,
+          ticketId: ticket.id,
           authorId: user.id,
         },
       });
+
+    await createActivity({
+      ticketId: ticket.id,
+      actorId: user.id,
+      type: "COMMENT_ADDED",
+      message: isInternal
+        ? "Internal note added"
+        : "Comment added",
+    });
+
     return NextResponse.json(comment);
 
   } catch (error) {

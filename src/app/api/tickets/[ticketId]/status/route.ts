@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 
 import { getAuthorizedTicket } from "@/lib/permissions";
 
+import { createActivity } from "@/lib/activity";
 
 interface RouteContext {
     params: Promise<{
@@ -50,20 +51,14 @@ export async function PATCH(
                 },
             });
 
-        // activity log
-        await db.ticketActivity.create({
-            data: {
-                type: "STATUS_CHANGED",
+        await createActivity({
+            ticketId: ticket.id,
 
-                message: `Status changed to ${status.replace(
-                    "_",
-                    " "
-                )}`,
+            actorId: user.id,
 
-                ticketId: ticket.id,
+            type: "STATUS_CHANGED",
 
-                actorId: user.id,
-            },
+            message: `Ticket status changed to ${status}`,
         });
 
         return NextResponse.json(

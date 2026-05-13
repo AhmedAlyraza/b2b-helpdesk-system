@@ -1,20 +1,30 @@
 import { NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
+
+import { getCurrentTenantUser } from "@/lib/tenant";
+
+import { createActivity } from "@/lib/activity";
 
 export async function POST(req: Request) {
   try {
-    const user = await getCurrentUser();
-console.log("USER:", user);
+
+    const user =
+      await getCurrentTenantUser();
+
     if (!user) {
       return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
+        {
+          error: "Unauthorized",
+        },
+        {
+          status: 401,
+        }
       );
     }
 
-    const body = await req.json();
+    const body =
+      await req.json();
 
     const {
       title,
@@ -22,27 +32,64 @@ console.log("USER:", user);
       priority,
     } = body;
 
-    const ticket = await db.ticket.create({
-      data: {
-        title,
-        description,
-        priority,
+    // basic validation
+    if (
+      !title ||
+      !description
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Title and description are required",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
 
-        organizationId:
-          user.organizationId!,
+    const ticket =
+      await db.ticket.create({
+        data: {
+          title,
+          description,
+          priority,
 
-        createdById: user.id,
-      },
+          organizationId:
+            user.organizationId,
+
+          createdById:
+            user.id,
+        },
+      });
+
+    // activity log
+    await createActivity({
+      ticketId: ticket.id,
+
+      actorId: user.id,
+
+      type: "TICKET_CREATED",
+
+      message: `Created ticket: ${ticket.title}`,
     });
 
-    return NextResponse.json(ticket);
+    return NextResponse.json(
+      ticket
+    );
 
   } catch (error) {
+
     console.error(error);
 
     return NextResponse.json(
-      { error: "Something went wrong" },
-      { status: 500 }
+      {
+        error:
+          "Something went wrong",
+      },
+      {
+        status: 500,
+      }
     );
   }
 }
