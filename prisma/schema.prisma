@@ -25,6 +25,13 @@ model User {
   name      String?
   role      Role     @default(CUSTOMER)
 
+  phone       String?
+  jobTitle    String?
+  bio         String?
+  avatarUrl   String?
+  location    String?
+  company     String?
+
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id])
 

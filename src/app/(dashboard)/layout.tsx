@@ -1,4 +1,7 @@
+import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import Link from "next/link";
+import { getCurrentUser } from "@/lib/auth";
+const user = await getCurrentUser();
 import { NotificationBell } from "@/features/notifications/components/notification-bell";
 import {
   LayoutDashboard,
@@ -7,11 +10,14 @@ import {
   Settings,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+
+
   return (
     <div className="flex min-h-screen bg-zinc-100 dark:bg-zinc-950">
       {/* Sidebar */}
@@ -27,40 +33,7 @@ export default function DashboardLayout({
           </p>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 space-y-1 p-4">
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100"
-          >
-            <LayoutDashboard size={18} />
-            Dashboard
-          </Link>
-
-          <Link
-            href="/tickets"
-            className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100"
-          >
-            <Ticket size={18} />
-            Tickets
-          </Link>
-
-          <Link
-            href="/tickets/new"
-            className="flex items-center gap-3 rounded-xl bg-black px-4 py-3 text-sm font-medium text-white transition hover:bg-zinc-800"
-          >
-            <PlusCircle size={18} />
-            New Ticket
-          </Link>
-        </nav>
-
-        {/* Bottom */}
-        <div className="border-t border-zinc-200 p-4">
-          <button className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100">
-            <Settings size={18} />
-            Settings
-          </button>
-        </div>
+        <SidebarNav />
       </aside>
 
       {/* Main */}
@@ -83,9 +56,16 @@ export default function DashboardLayout({
 
               <NotificationBell />
 
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black text-sm font-semibold text-white dark:bg-white dark:text-black">
-                A
-              </div>
+              <Link href="/settings">
+
+                <div className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-black text-sm font-bold text-white transition hover:scale-105 dark:bg-white dark:text-black">
+
+                  {user?.name?.[0] ?? "U"}
+
+                </div>
+
+              </Link>
+
             </div>
           </div>
         </header>
