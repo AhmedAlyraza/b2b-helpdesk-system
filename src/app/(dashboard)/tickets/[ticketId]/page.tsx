@@ -28,7 +28,7 @@ import { TypingIndicator } from "@/features/tickets/components/typing-indicator"
 import { ActiveViewers } from "@/features/tickets/components/active-viewers";
 import { RealtimeTicketState } from "@/features/tickets/components/realtime-ticket-state";
 import { RealtimeActivityFeed } from "@/features/tickets/components/realtime-activity-feed";
-import user from "pusher-js/types/src/core/user";
+
 
 interface TicketDetailsPageProps {
   params: Promise<{
