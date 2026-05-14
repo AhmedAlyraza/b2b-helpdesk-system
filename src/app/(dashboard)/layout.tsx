@@ -96,9 +96,24 @@ export default async function DashboardLayout({
               </div>
 
               <NotificationBell
-                initialNotifications={notifications}
-                initialUnreadCount={unreadCount}
-                userId={user?.id || ""}
+                initialNotifications={
+                  notifications.map(
+                    (notification) => ({
+                      ...notification,
+
+                      createdAt:
+                        notification.createdAt.toISOString(),
+                    })
+                  )
+                }
+
+                initialUnreadCount={
+                  unreadCount
+                }
+
+                userId={
+                  user?.id || ""
+                }
               />
 
               <Link href="/settings">
