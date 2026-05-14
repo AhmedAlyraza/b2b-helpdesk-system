@@ -55,13 +55,15 @@ export default async function TicketDetailsPage({
     redirect("/login");
   }
 
+  const organizationId =
+    user.organizationId || undefined;
+
   const ticket =
     await db.ticket.findFirst({
       where: {
         id: ticketId,
 
-        organizationId:
-           user.organizationId || undefined,
+        organizationId,
       },
 
       include: {
@@ -108,8 +110,7 @@ export default async function TicketDetailsPage({
   const agents =
     await db.user.findMany({
       where: {
-        organizationId:
-           user.organizationId || undefined,
+        organizationId,
 
         role: {
           in: [
