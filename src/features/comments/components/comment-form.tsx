@@ -1,117 +1,226 @@
 "use client";
 
-import { useState } from "react";
+import {
+  useRef,
+  useState,
+} from "react";
 
 import { Send } from "lucide-react";
 
+import { MentionTextarea } from "@/components/ui/mention-textarea";
+
 interface CommentFormProps {
-    ticketId: string;
+  ticketId: string;
 }
 
 export function CommentForm({
-    ticketId,
+  ticketId,
 }: CommentFormProps) {
-    const [message, setMessage] =
-        useState("");
 
-    const [isInternal, setIsInternal] =
-        useState(false);
+  const [
+    message,
+    setMessage,
+  ] = useState("");
 
-    const [isSubmitting, setIsSubmitting] =
-        useState(false);
+  const [
+    isInternal,
+    setIsInternal,
+  ] = useState(false);
 
-    async function handleSubmit(
-        e: React.FormEvent
-    ) {
-        e.preventDefault();
+  const [
+    isSubmitting,
+    setIsSubmitting,
+  ] = useState(false);
 
-        if (!message.trim()) return;
+  // =========================
+  // TYPING DEBOUNCE
+  // =========================
+  const typingTimeoutRef =
+    useRef<NodeJS.Timeout | null>(
+      null
+    );
 
-        try {
-            setIsSubmitting(true);
+  // =========================
+  // EMIT TYPING EVENT
+  // =========================
+  async function emitTyping() {
 
-            const res = await fetch(
-                `/api/tickets/${ticketId}/comments`,
-                {
-                    method: "POST",
+    try {
 
-                    credentials: "include",
-
-                    headers: {
-                        "Content-Type":
-                            "application/json",
-                    },
-
-                    body: JSON.stringify({
-                        message,
-                        isInternal,
-                    }),
-                }
-            );
-
-            if (!res.ok) {
-                const error =
-                    await res.json();
-
-                console.error(error);
-
-                return;
-            }
-
-            setMessage("");
-
-            window.location.reload();
-
-        } catch (error) {
-            console.error(error);
-
-        } finally {
-            setIsSubmitting(false);
+      await fetch(
+        `/api/tickets/${ticketId}/typing`,
+        {
+          method: "POST",
         }
+      );
+
+    } catch (error) {
+
+      console.error(error);
+
+    }
+  }
+
+  // =========================
+  // HANDLE MESSAGE CHANGE
+  // =========================
+  function handleMessageChange(
+    value: string
+  ) {
+
+    setMessage(value);
+
+    // debounce typing events
+    if (
+      typingTimeoutRef.current
+    ) {
+
+      clearTimeout(
+        typingTimeoutRef.current
+      );
     }
 
-    return (
-        <form
-            onSubmit={handleSubmit}
-            className="space-y-4"
+    typingTimeoutRef.current =
+      setTimeout(() => {
+
+        emitTyping();
+
+      }, 300);
+  }
+
+  // =========================
+  // SUBMIT COMMENT
+  // =========================
+  async function handleSubmit(
+    e: React.FormEvent
+  ) {
+
+    e.preventDefault();
+
+    if (!message.trim()) {
+      return;
+    }
+
+    try {
+
+      setIsSubmitting(true);
+
+      const response =
+        await fetch(
+          `/api/tickets/${ticketId}/comments`,
+          {
+            method: "POST",
+
+            credentials:
+              "include",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body: JSON.stringify({
+              message,
+
+              isInternal,
+            }),
+          }
+        );
+
+      if (!response.ok) {
+
+        const error =
+          await response.json();
+
+        console.error(error);
+
+        return;
+      }
+
+      // clear form
+      setMessage("");
+
+      setIsInternal(false);
+
+      // no reload needed anymore
+      // realtime comments handle updates
+
+    } catch (error) {
+
+      console.error(error);
+
+    } finally {
+
+      setIsSubmitting(false);
+
+    }
+  }
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-4"
+    >
+
+      <MentionTextarea
+        value={message}
+
+        onChange={
+          handleMessageChange
+        }
+
+        rows={6}
+
+        placeholder="Write a reply... Use @ to mention teammates"
+      />
+
+      <div className="flex items-center justify-between">
+
+        <label className="flex items-center gap-3 text-sm text-zinc-600 dark:text-zinc-300">
+
+          <input
+            type="checkbox"
+
+            checked={isInternal}
+
+            onChange={(e) =>
+              setIsInternal(
+                e.target.checked
+              )
+            }
+
+            className="h-4 w-4 rounded border-zinc-300"
+          />
+
+          Internal note
+
+        </label>
+
+      </div>
+
+      <div className="flex justify-end">
+
+        <button
+          type="submit"
+
+          disabled={
+            isSubmitting ||
+            !message.trim()
+          }
+
+          className="inline-flex items-center gap-2 rounded-xl bg-black px-5 py-3 text-sm font-medium text-white shadow-sm transition hover:scale-[1.02] hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-black"
         >
-            <textarea
-                value={message}
-                onChange={(e) =>
-                    setMessage(e.target.value)
-                }
-                placeholder="Write a reply..."
-                className="min-h-[140px] w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-5 py-4 text-sm leading-7 outline-none transition placeholder:text-zinc-400 focus:border-zinc-400 focus:bg-white dark:border-zinc-800 dark:bg-zinc-950 dark:focus:border-zinc-600 dark:focus:bg-zinc-900"
-            />
-            <div className="flex items-center justify-between">
-                <label className="flex items-center gap-3 text-sm text-zinc-600 dark:text-zinc-300">
-                    <input
-                        type="checkbox"
-                        checked={isInternal}
-                        onChange={(e) =>
-                            setIsInternal(
-                                e.target.checked
-                            )
-                        }
-                        className="h-4 w-4 rounded border-zinc-300"
-                    />
 
-                    Internal note
-                </label>
-            </div>
-            <div className="flex justify-end">
-                <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="inline-flex items-center gap-2 rounded-xl bg-black px-5 py-3 text-sm font-medium text-white shadow-sm transition hover:scale-[1.02] hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-black"
-                >
-                    <Send size={16} />
+          <Send size={16} />
 
-                    {isSubmitting
-                        ? "Posting reply..."
-                        : "Send Reply"}
-                </button>
-            </div>
-        </form>
-    );
+          {isSubmitting
+            ? "Posting reply..."
+            : "Send Reply"}
+
+        </button>
+
+      </div>
+
+    </form>
+  );
 }

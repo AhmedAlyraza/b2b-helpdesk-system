@@ -14,6 +14,8 @@ import { createActivity } from "@/lib/activity";
 
 import { createNotification } from "@/lib/notifications";
 
+import { pusherServer } from "@/lib/pusher";
+
 interface RouteContext {
   params: Promise<{
     ticketId: string;
@@ -130,7 +132,7 @@ export async function PATCH(
     // prevent reopening closed tickets
     if (
       ticket.status ===
-        "CLOSED" &&
+      "CLOSED" &&
       status !== "CLOSED"
     ) {
       return NextResponse.json(
@@ -147,7 +149,7 @@ export async function PATCH(
     // prevent direct OPEN -> RESOLVED skip
     if (
       ticket.status ===
-        "OPEN" &&
+      "OPEN" &&
       status === "RESOLVED"
     ) {
       return NextResponse.json(
@@ -181,9 +183,17 @@ export async function PATCH(
         },
       });
 
-    // =========================
-    // ACTIVITY LOG
-    // =========================
+
+    await pusherServer.trigger(
+      `ticket-${ticket.id}`,
+      "ticket-updated",
+      {
+        type: "status",
+
+        status:
+          updatedTicket.status,
+      }
+    );
     await createActivity({
       ticketId: ticket.id,
 
@@ -222,9 +232,9 @@ export async function PATCH(
     if (
       ticket.assignedToId &&
       ticket.assignedToId !==
-        user.id &&
+      user.id &&
       ticket.assignedToId !==
-        ticket.createdById
+      ticket.createdById
     ) {
 
       await createNotification({

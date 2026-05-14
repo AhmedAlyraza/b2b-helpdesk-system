@@ -10,6 +10,8 @@ import { NotificationBell } from "@/features/notifications/components/notificati
 
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 
+import { OnlineUsers } from "@/features/presence/components/online-users";
+
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
@@ -24,29 +26,28 @@ export default async function DashboardLayout({
   const notifications =
     user
       ? await db.notification.findMany({
-          where: {
-            userId: user.id,
-          },
+        where: {
+          userId: user.id,
+        },
 
-          orderBy: {
-            createdAt: "desc",
-          },
+        orderBy: {
+          createdAt: "desc",
+        },
 
-          take: 5,
-        })
+        take: 5,
+      })
       : [];
 
   const unreadCount =
     user
       ? await db.notification.count({
-          where: {
-            userId: user.id,
+        where: {
+          userId: user.id,
 
-            read: false,
-          },
-        })
+          read: false,
+        },
+      })
       : 0;
-
   return (
     <div className="flex min-h-screen bg-zinc-100 dark:bg-zinc-950">
 
@@ -95,18 +96,9 @@ export default async function DashboardLayout({
               </div>
 
               <NotificationBell
-                initialNotifications={notifications.map(
-                  (notification) => ({
-                    ...notification,
-
-                    createdAt:
-                      notification.createdAt.toISOString(),
-                  })
-                )}
-
-                initialUnreadCount={
-                  unreadCount
-                }
+                initialNotifications={notifications}
+                initialUnreadCount={unreadCount}
+                userId={user?.id || ""}
               />
 
               <Link href="/settings">
@@ -126,9 +118,23 @@ export default async function DashboardLayout({
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-6">
-          {children}
-        </main>
+        <div className="flex flex-1">
+
+          <main className="flex-1 p-6">
+            {children}
+          </main>
+
+          <aside className="hidden w-80 border-l border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900 xl:block">
+
+            <OnlineUsers
+              currentUserId={
+                user?.id || ""
+              }
+            />
+
+          </aside>
+
+        </div>
 
       </div>
 

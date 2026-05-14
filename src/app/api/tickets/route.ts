@@ -6,6 +6,8 @@ import { getCurrentTenantUser } from "@/lib/tenant";
 
 import { createActivity } from "@/lib/activity";
 
+import { calculateSlaDueDate } from "@/lib/sla";
+
 export async function POST(req: Request) {
   try {
 
@@ -52,11 +54,18 @@ export async function POST(req: Request) {
       await db.ticket.create({
         data: {
           title,
+
           description,
+
           priority,
 
+          slaDueAt:
+            calculateSlaDueDate(
+              priority
+            ),
+
           organizationId:
-            user.organizationId,
+            user.organizationId!,
 
           createdById:
             user.id,

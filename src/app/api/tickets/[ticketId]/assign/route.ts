@@ -10,6 +10,8 @@ import { createActivity } from "@/lib/activity";
 
 import { createNotification } from "@/lib/notifications";
 
+import { pusherServer } from "@/lib/pusher";
+
 interface RouteContext {
   params: Promise<{
     ticketId: string;
@@ -73,9 +75,7 @@ export async function PATCH(
       assigneeId,
     } = body;
 
-    // =========================
-    // UNASSIGN
-    // =========================
+
     if (!assigneeId) {
 
       const updatedTicket =
@@ -106,9 +106,7 @@ export async function PATCH(
       );
     }
 
-    // =========================
-    // VALIDATE ASSIGNED USER
-    // =========================
+
     const assignedUser =
       await db.user.findFirst({
         where: {
@@ -163,9 +161,7 @@ export async function PATCH(
       );
     }
 
-    // =========================
-    // UPDATE TICKET
-    // =========================
+
     const updatedTicket =
       await db.ticket.update({
         where: {
@@ -182,9 +178,25 @@ export async function PATCH(
         },
       });
 
-    // =========================
-    // ACTIVITY LOG
-    // =========================
+
+    await pusherServer.trigger(
+      `ticket-${ticket.id}`,
+      "ticket-updated",
+      {
+        type: "assignment",
+
+        assignedTo: assignedUser
+          ? {
+            id:
+              assignedUser.id,
+
+            name:
+              assignedUser.name ||
+              assignedUser.email,
+          }
+          : null,
+      }
+    );
     await createActivity({
       ticketId: ticket.id,
 
@@ -192,15 +204,12 @@ export async function PATCH(
 
       type: "TICKET_ASSIGNED",
 
-      message: `Ticket assigned to ${
-        assignedUser.name ||
+      message: `Ticket assigned to ${assignedUser.name ||
         assignedUser.email
-      }`,
+        }`,
     });
 
-    // =========================
-    // NOTIFICATION
-    // =========================
+
     await createNotification({
       userId:
         assignedUser.id,

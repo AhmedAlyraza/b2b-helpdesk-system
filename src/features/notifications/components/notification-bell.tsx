@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 
+import { useEffect, useState } from "react";
+
 import { Bell } from "lucide-react";
 
-import { useState } from "react";
+import { pusherClient } from "@/lib/pusher-client";
 
 interface Notification {
   id: string;
@@ -24,11 +26,14 @@ interface NotificationBellProps {
   initialNotifications: Notification[];
 
   initialUnreadCount: number;
+
+  userId: string;
 }
 
 export function NotificationBell({
   initialNotifications,
   initialUnreadCount,
+  userId,
 }: NotificationBellProps) {
 
   const [
@@ -45,39 +50,44 @@ export function NotificationBell({
     initialUnreadCount
   );
 
-  async function markAsRead(
-    notificationId: string
-  ) {
+  // =========================
+  // REALTIME SUBSCRIPTION
+  // =========================
+  useEffect(() => {
 
-    try {
-
-      await fetch(
-        `/api/notifications/${notificationId}/read`,
-        {
-          method: "PATCH",
-        }
+    const channel =
+      pusherClient.subscribe(
+        `user-${userId}`
       );
 
-      setNotifications((prev) =>
-        prev.map((notification) =>
-          notification.id ===
-          notificationId
-            ? {
-                ...notification,
-                read: true,
-              }
-            : notification
-        )
-      );
+    channel.bind(
+      "new-notification",
+      (
+        notification: Notification
+      ) => {
 
-      setUnreadCount((prev) =>
-        Math.max(prev - 1, 0)
-      );
+        setNotifications(
+          (prev) => [
+            notification,
+            ...prev,
+          ]
+        );
 
-    } catch (error) {
-      console.error(error);
-    }
-  }
+        setUnreadCount(
+          (prev) => prev + 1
+        );
+      }
+    );
+
+    return () => {
+
+      channel.unbind_all();
+
+      channel.unsubscribe();
+
+    };
+
+  }, [userId]);
 
   return (
     <div className="relative">
@@ -91,22 +101,21 @@ export function NotificationBell({
             <Bell className="h-6 w-6 text-zinc-700 dark:text-zinc-300" />
 
             {unreadCount > 0 && (
-              <span
-                className="absolute -right-2 -top-2 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white"
-              >
+
+              <span className="absolute -right-2 -top-2 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
+
                 {unreadCount}
+
               </span>
+
             )}
 
           </div>
 
         </summary>
 
-        <div
-          className="absolute right-0 z-50 mt-3 w-96 rounded-2xl border border-zinc-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-900"
-        >
+        <div className="absolute right-0 z-50 mt-3 w-96 rounded-2xl border border-zinc-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
 
-          {/* Header */}
           <div className="border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
 
             <div className="flex items-center justify-between">
@@ -126,13 +135,14 @@ export function NotificationBell({
 
           </div>
 
-          {/* Content */}
           <div className="max-h-[400px] overflow-y-auto">
 
             {notifications.length === 0 && (
+
               <div className="p-6 text-center text-sm text-zinc-500">
                 No notifications
               </div>
+
             )}
 
             {notifications.map(
@@ -144,11 +154,6 @@ export function NotificationBell({
                     notification.ticketId
                       ? `/tickets/${notification.ticketId}`
                       : "/notifications"
-                  }
-                  onClick={() =>
-                    markAsRead(
-                      notification.id
-                    )
                   }
                 >
 
@@ -174,13 +179,10 @@ export function NotificationBell({
 
                       </div>
 
-                      {!notification.read && (
-                        <span className="mt-1 h-2 w-2 rounded-full bg-blue-500" />
-                      )}
-
                     </div>
 
                     <p className="mt-2 text-xs text-zinc-400">
+
                       {
                         new Date(
                           notification.createdAt
@@ -188,6 +190,7 @@ export function NotificationBell({
                           .toISOString()
                           .split("T")[0]
                       }
+
                     </p>
 
                   </div>

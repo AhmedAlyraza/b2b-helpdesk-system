@@ -1,76 +1,42 @@
 import { db } from "@/lib/db";
 
-interface CreateNotificationParams {
-  userId: string;
+import { pusherServer } from "@/lib/pusher";
 
+interface CreateNotificationProps {
   title: string;
 
   message: string;
+
+  userId: string;
 
   ticketId?: string;
 }
 
 export async function createNotification({
-  userId,
   title,
   message,
+  userId,
   ticketId,
-}: CreateNotificationParams) {
+}: CreateNotificationProps) {
 
-  return db.notification.create({
-    data: {
-      userId,
+  const notification =
+    await db.notification.create({
+      data: {
+        title,
+        message,
+        userId,
+        ticketId,
+      },
+    });
 
-      title,
+  // =========================
+  // REALTIME EVENT
+  // =========================
+  await pusherServer.trigger(
+    `user-${userId}`,
+    "new-notification",
+    notification
+  );
 
-      message,
-
-      ticketId,
-    },
-  });
-}
-
-export async function markNotificationAsRead(
-  notificationId: string
-) {
-
-  return db.notification.update({
-    where: {
-      id: notificationId,
-    },
-
-    data: {
-      read: true,
-    },
-  });
-}
-
-export async function markAllNotificationsAsRead(
-  userId: string
-) {
-
-  return db.notification.updateMany({
-    where: {
-      userId,
-
-      read: false,
-    },
-
-    data: {
-      read: true,
-    },
-  });
-}
-
-export async function getUnreadNotificationsCount(
-  userId: string
-) {
-
-  return db.notification.count({
-    where: {
-      userId,
-
-      read: false,
-    },
-  });
+  return notification;
 }

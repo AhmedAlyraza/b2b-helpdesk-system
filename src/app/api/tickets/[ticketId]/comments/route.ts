@@ -8,6 +8,10 @@ import { createActivity } from "@/lib/activity";
 
 import { createNotification } from "@/lib/notifications";
 
+import { processMentions } from "@/lib/mentions";
+
+import { pusherServer } from "@/lib/pusher";
+
 interface RouteContext {
   params: Promise<{
     ticketId: string;
@@ -92,30 +96,68 @@ export async function POST(
     // =========================
     // CREATE COMMENT
     // =========================
-    const comment =
-      await db.comment.create({
-        data: {
-          message:
-            message.trim(),
+    const comment = await db.comment.create({
+      data: {
+        message:
+          message.trim(),
 
-          isInternal:
-            isInternal ?? false,
+        isInternal:
+          isInternal ?? false,
 
-          ticketId:
-            ticket.id,
+        ticketId:
+          ticket.id,
 
-          authorId:
-            user.id,
+        authorId:
+          user.id,
+      },
+
+      include: {
+        author: true,
+      },
+    });
+
+
+    await pusherServer.trigger(
+      `ticket-${ticket.id}`,
+      "new-comment",
+      {
+        id: comment.id,
+
+        message:
+          comment.message,
+
+        createdAt:
+          comment.createdAt,
+
+        isInternal:
+          comment.isInternal,
+
+        author: {
+          id: user.id,
+
+          name:
+            user.name,
+
+          email:
+            user.email,
         },
+      }
+    );
 
-        include: {
-          author: true,
-        },
-      });
+    await processMentions({
+      commentId: comment.id,
 
-    // =========================
-    // ACTIVITY LOG
-    // =========================
+      message,
+
+      organizationId:
+        user.organizationId!,
+
+      authorId: user.id,
+
+      ticketId: ticket.id,
+    });
+
+
     await createActivity({
       ticketId:
         ticket.id,
@@ -132,15 +174,12 @@ export async function POST(
           : "Comment added",
     });
 
-    // =========================
-    // NOTIFICATIONS
-    // =========================
 
     // notify assigned agent
     if (
       ticket.assignedToId &&
       ticket.assignedToId !==
-        user.id
+      user.id
     ) {
 
       await createNotification({
@@ -152,16 +191,13 @@ export async function POST(
             ? "New Internal Note"
             : "New Ticket Comment",
 
-        message: `${
-          user.name ||
+        message: `${user.name ||
           user.email
-        } ${
-          isInternal
+          } ${isInternal
             ? "added an internal note on"
             : "commented on"
-        } ticket: ${
-          ticket.title
-        }`,
+          } ticket: ${ticket.title
+          }`,
 
         ticketId:
           ticket.id,
@@ -172,9 +208,9 @@ export async function POST(
     if (
       !isInternal &&
       ticket.createdById !==
-        user.id &&
+      user.id &&
       ticket.createdById !==
-        ticket.assignedToId
+      ticket.assignedToId
     ) {
 
       await createNotification({
@@ -184,12 +220,10 @@ export async function POST(
         title:
           "New Ticket Reply",
 
-        message: `${
-          user.name ||
+        message: `${user.name ||
           user.email
-        } replied to ticket: ${
-          ticket.title
-        }`,
+          } replied to ticket: ${ticket.title
+          }`,
 
         ticketId:
           ticket.id,

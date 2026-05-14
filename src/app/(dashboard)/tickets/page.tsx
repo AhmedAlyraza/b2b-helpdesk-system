@@ -6,9 +6,15 @@ import {
 } from "lucide-react";
 
 import {
+  Prisma,
   TicketPriority,
   TicketStatus,
 } from "@prisma/client";
+
+import {
+  isTicketOverdue,
+  getRemainingSlaTime,
+} from "@/lib/ticket-sla";
 
 import { db } from "@/lib/db";
 
@@ -18,6 +24,10 @@ import { getCurrentTenantUser } from "@/lib/tenant";
 
 import { TicketsFilters } from "@/features/tickets/components/tickets-filters";
 
+import { SaveViewButton } from "@/features/tickets/components/save-view-button";
+
+import { SavedViewsList } from "@/features/tickets/components/saved-views-list";
+
 interface TicketsPageProps {
   searchParams: Promise<{
     search?: string;
@@ -26,8 +36,58 @@ interface TicketsPageProps {
 
     priority?: string;
 
+    assignee?: string;
+
+    sort?: string;
+
     page?: string;
   }>;
+}
+
+function buildTicketsUrl({
+  search,
+  status,
+  priority,
+  assignee,
+  sort,
+  page,
+}: {
+  search: string;
+  status: string;
+  priority: string;
+  assignee: string;
+  sort: string;
+  page: number;
+}) {
+  const params =
+    new URLSearchParams();
+
+  if (search) {
+    params.set("search", search);
+  }
+
+  if (status) {
+    params.set("status", status);
+  }
+
+  if (priority) {
+    params.set("priority", priority);
+  }
+
+  if (assignee) {
+    params.set("assignee", assignee);
+  }
+
+  if (sort) {
+    params.set("sort", sort);
+  }
+
+  params.set(
+    "page",
+    String(page)
+  );
+
+  return `/tickets?${params.toString()}`;
 }
 
 export default async function TicketsPage({
@@ -53,8 +113,17 @@ export default async function TicketsPage({
   const priority =
     params.priority || "";
 
+  const assignee =
+    params.assignee || "";
+
+  const sort =
+    params.sort || "newest";
+
   const currentPage =
-    Number(params.page) || 1;
+    Math.max(
+      Number(params.page) || 1,
+      1
+    );
 
   const pageSize = 10;
 
@@ -62,7 +131,32 @@ export default async function TicketsPage({
     (currentPage - 1) *
     pageSize;
 
-  const whereClause = {
+  const agents =
+    await db.user.findMany({
+      where: {
+        organizationId:
+          user.organizationId,
+
+        role: {
+          in: [
+            "ADMIN",
+            "AGENT",
+          ],
+        },
+      },
+
+      select: {
+        id: true,
+        name: true,
+        email: true,
+      },
+
+      orderBy: {
+        createdAt: "asc",
+      },
+    });
+
+  const whereClause: Prisma.TicketWhereInput = {
     organizationId:
       user.organizationId,
 
@@ -71,14 +165,14 @@ export default async function TicketsPage({
         {
           title: {
             contains: search,
-            mode: "insensitive" as const,
+            mode: "insensitive",
           },
         },
 
         {
           description: {
             contains: search,
-            mode: "insensitive" as const,
+            mode: "insensitive",
           },
         },
       ],
@@ -93,7 +187,35 @@ export default async function TicketsPage({
       priority:
         priority as TicketPriority,
     }),
+
+    ...(assignee === "unassigned"
+      ? {
+        assignedToId: null,
+      }
+      : assignee
+        ? {
+          assignedToId:
+            assignee,
+        }
+        : {}),
   };
+
+  const orderBy: Prisma.TicketOrderByWithRelationInput =
+    sort === "oldest"
+      ? {
+        createdAt: "asc",
+      }
+      : sort === "priority"
+        ? {
+          priority: "desc",
+        }
+        : sort === "sla"
+          ? {
+            slaDueAt: "asc",
+          }
+          : {
+            createdAt: "desc",
+          };
 
   const [
     tickets,
@@ -108,9 +230,7 @@ export default async function TicketsPage({
         createdBy: true,
       },
 
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy,
 
       skip,
 
@@ -124,8 +244,11 @@ export default async function TicketsPage({
   ]);
 
   const totalPages =
-    Math.ceil(
-      totalTickets / pageSize
+    Math.max(
+      Math.ceil(
+        totalTickets / pageSize
+      ),
+      1
     );
 
   return (
@@ -164,7 +287,39 @@ export default async function TicketsPage({
         search={search}
         status={status}
         priority={priority}
+        assignee={assignee}
+        sort={sort}
+        agents={agents}
       />
+
+      <div className="flex items-center justify-between gap-4">
+
+        <SaveViewButton
+          filters={{
+            search,
+            status,
+            priority,
+            assignee,
+            sort,
+          }}
+        />
+
+      </div>
+
+      {/* Result Summary */}
+      <div className="flex items-center justify-between text-sm text-zinc-500 dark:text-zinc-400">
+
+        <p>
+          Showing {tickets.length} of {totalTickets} tickets
+        </p>
+
+        <p>
+          Page {currentPage} of {totalPages}
+        </p>
+
+      </div>
+
+      <SavedViewsList />
 
       {/* Ticket List */}
       <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
@@ -220,19 +375,15 @@ export default async function TicketsPage({
                       {ticket.title}
                     </h2>
 
-                    {/* Status */}
                     <span
-                      className={`rounded-full px-3 py-1 text-xs font-medium ${
-                        ticket.status === "OPEN"
-                          ? "bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400"
-                          : ticket.status ===
-                            "IN_PROGRESS"
+                      className={`rounded-full px-3 py-1 text-xs font-medium ${ticket.status === "OPEN"
+                        ? "bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400"
+                        : ticket.status === "IN_PROGRESS"
                           ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400"
-                          : ticket.status ===
-                            "RESOLVED"
-                          ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400"
-                          : "bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300"
-                      }`}
+                          : ticket.status === "RESOLVED"
+                            ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400"
+                            : "bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300"
+                        }`}
                     >
                       {ticket.status.replace(
                         "_",
@@ -240,22 +391,35 @@ export default async function TicketsPage({
                       )}
                     </span>
 
-                    {/* Priority */}
                     <span
-                      className={`rounded-full px-3 py-1 text-xs font-medium ${
-                        ticket.priority === "URGENT"
-                          ? "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400"
-                          : ticket.priority ===
-                            "HIGH"
+                      className={`rounded-full px-3 py-1 text-xs font-medium ${ticket.priority === "URGENT"
+                        ? "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400"
+                        : ticket.priority === "HIGH"
                           ? "bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400"
-                          : ticket.priority ===
-                            "MEDIUM"
-                          ? "bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400"
-                          : "bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300"
-                      }`}
+                          : ticket.priority === "MEDIUM"
+                            ? "bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400"
+                            : "bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300"
+                        }`}
                     >
                       {ticket.priority}
                     </span>
+
+                    {isTicketOverdue(ticket) ? (
+
+                      <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-medium text-red-700 dark:bg-red-500/10 dark:text-red-400">
+                        Overdue
+                      </span>
+
+                    ) : (
+
+                      <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                        SLA:{" "}
+                        {getRemainingSlaTime(
+                          ticket.slaDueAt
+                        )}
+                      </span>
+
+                    )}
 
                   </div>
 
@@ -266,16 +430,15 @@ export default async function TicketsPage({
                   <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-zinc-400">
 
                     <span>
-                      Created by:
-                      {" "}
+                      Created by:{" "}
                       {ticket.createdBy.name ||
                         ticket.createdBy.email}
                     </span>
 
                     <span>
-                      Assigned:
-                      {" "}
+                      Assigned:{" "}
                       {ticket.assignedTo?.name ||
+                        ticket.assignedTo?.email ||
                         "Unassigned"}
                     </span>
 
@@ -283,7 +446,9 @@ export default async function TicketsPage({
                       {
                         new Date(
                           ticket.createdAt
-                        ).toLocaleDateString()
+                        )
+                          .toISOString()
+                          .split("T")[0]
                       }
                     </span>
 
@@ -322,7 +487,15 @@ export default async function TicketsPage({
             {currentPage > 1 && (
 
               <Link
-                href={`/tickets?search=${search}&status=${status}&priority=${priority}&page=${currentPage - 1}`}
+                href={buildTicketsUrl({
+                  search,
+                  status,
+                  priority,
+                  assignee,
+                  sort,
+                  page:
+                    currentPage - 1,
+                })}
                 className="rounded-xl border border-zinc-200 px-4 py-2 text-sm transition hover:bg-zinc-100 dark:border-zinc-800 dark:hover:bg-zinc-800"
               >
                 Previous
@@ -333,7 +506,15 @@ export default async function TicketsPage({
             {currentPage < totalPages && (
 
               <Link
-                href={`/tickets?search=${search}&status=${status}&priority=${priority}&page=${currentPage + 1}`}
+                href={buildTicketsUrl({
+                  search,
+                  status,
+                  priority,
+                  assignee,
+                  sort,
+                  page:
+                    currentPage + 1,
+                })}
                 className="rounded-xl border border-zinc-200 px-4 py-2 text-sm transition hover:bg-zinc-100 dark:border-zinc-800 dark:hover:bg-zinc-800"
               >
                 Next

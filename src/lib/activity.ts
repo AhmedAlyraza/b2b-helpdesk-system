@@ -1,31 +1,71 @@
 import { db } from "@/lib/db";
 
-interface CreateActivityParams {
-    ticketId: string;
+import { pusherServer } from "@/lib/pusher";
 
-    actorId: string;
+interface CreateActivityProps {
+  ticketId: string;
 
-    type: string;
+  actorId: string;
 
-    message: string;
+  type: string;
+
+  message: string;
 }
 
 export async function createActivity({
-    ticketId,
-    actorId,
-    type,
-    message,
-}: CreateActivityParams) {
+  ticketId,
+  actorId,
+  type,
+  message,
+}: CreateActivityProps) {
 
-    return db.ticketActivity.create({
-        data: {
-            ticketId,
+  const activity =
+    await db.ticketActivity.create({
+      data: {
+        ticketId,
 
-            actorId,
+        actorId,
 
-            type,
+        type,
 
-            message,
-        },
+        message,
+      },
+
+      include: {
+        actor: true,
+      },
     });
+
+  // =========================
+  // REALTIME EVENT
+  // =========================
+  await pusherServer.trigger(
+    `ticket-${ticketId}`,
+    "new-activity",
+    {
+      id: activity.id,
+
+      type:
+        activity.type,
+
+      message:
+        activity.message,
+
+      createdAt:
+        activity.createdAt,
+
+      actor: {
+        id:
+          activity.actor.id,
+
+        name:
+          activity.actor.name,
+
+        email:
+          activity.actor.email,
+      },
+    }
+  );
+
+  return activity;
 }

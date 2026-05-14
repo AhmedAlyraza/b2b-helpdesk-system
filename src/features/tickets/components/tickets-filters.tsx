@@ -3,149 +3,274 @@
 import { useRouter } from "next/navigation";
 
 interface TicketsFiltersProps {
-    search: string;
+  search: string;
 
-    status: string;
+  status: string;
 
-    priority: string;
+  priority: string;
+
+  assignee: string;
+
+  sort: string;
+
+  agents: {
+    id: string;
+    name: string | null;
+    email: string;
+  }[];
 }
 
 export function TicketsFilters({
-    search,
-    status,
-    priority,
+  search,
+  status,
+  priority,
+  assignee,
+  sort,
+  agents,
 }: TicketsFiltersProps) {
-    const router = useRouter();
 
-    function updateFilters(
-        values: {
-            search?: string;
+  const router =
+    useRouter();
 
-            status?: string;
+  function updateFilter(
+    key: string,
+    value: string
+  ) {
 
-            priority?: string;
-        }
+    const params =
+      new URLSearchParams();
+
+    if (
+      key === "search"
+        ? value
+        : search
     ) {
-        const params =
-            new URLSearchParams();
-
-        const nextSearch =
-            values.search ??
-            search;
-
-        const nextStatus =
-            values.status ??
-            status;
-
-        const nextPriority =
-            values.priority ??
-            priority;
-
-        if (nextSearch) {
-            params.set(
-                "search",
-                nextSearch
-            );
-        }
-
-        if (nextStatus) {
-            params.set(
-                "status",
-                nextStatus
-            );
-        }
-
-        if (nextPriority) {
-            params.set(
-                "priority",
-                nextPriority
-            );
-        }
-
-        router.push(
-            `/tickets?${params.toString()}`
-        );
+      params.set(
+        "search",
+        key === "search"
+          ? value
+          : search
+      );
     }
 
-    return (
-        <div className="grid gap-4 rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 md:grid-cols-3">
-            {/* Search */}
-            <input
-                type="text"
-                defaultValue={search}
-                placeholder="Search tickets..."
-                onChange={(e) =>
-                    updateFilters({
-                        search:
-                            e.target.value,
-                    })
-                }
-                className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm outline-none transition focus:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:focus:border-zinc-600"
-            />
+    if (
+      key === "status"
+        ? value
+        : status
+    ) {
+      params.set(
+        "status",
+        key === "status"
+          ? value
+          : status
+      );
+    }
 
-            {/* Status */}
-            <select
-                value={status}
-                onChange={(e) =>
-                    updateFilters({
-                        status:
-                            e.target.value,
-                    })
-                }
-                className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm outline-none transition focus:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:focus:border-zinc-600"
-            >
-                <option value="">
-                    All Statuses
-                </option>
+    if (
+      key === "priority"
+        ? value
+        : priority
+    ) {
+      params.set(
+        "priority",
+        key === "priority"
+          ? value
+          : priority
+      );
+    }
 
-                <option value="OPEN">
-                    Open
-                </option>
+    if (
+      key === "assignee"
+        ? value
+        : assignee
+    ) {
+      params.set(
+        "assignee",
+        key === "assignee"
+          ? value
+          : assignee
+      );
+    }
 
-                <option value="IN_PROGRESS">
-                    In Progress
-                </option>
+    if (
+      key === "sort"
+        ? value
+        : sort
+    ) {
+      params.set(
+        "sort",
+        key === "sort"
+          ? value
+          : sort
+      );
+    }
 
-                <option value="RESOLVED">
-                    Resolved
-                </option>
-
-                <option value="CLOSED">
-                    Closed
-                </option>
-            </select>
-
-            {/* Priority */}
-            <select
-                value={priority}
-                onChange={(e) =>
-                    updateFilters({
-                        priority:
-                            e.target.value,
-                    })
-                }
-                className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm outline-none transition focus:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:focus:border-zinc-600"
-            >
-                <option value="">
-                    All Priorities
-                </option>
-
-                <option value="LOW">
-                    Low
-                </option>
-
-                <option value="MEDIUM">
-                    Medium
-                </option>
-
-                <option value="HIGH">
-                    High
-                </option>
-
-                <option value="URGENT">
-                    Urgent
-                </option>
-            </select>
-        </div>
+    router.push(
+      `/tickets?${params.toString()}`
     );
+  }
+
+  return (
+    <div className="grid gap-4 rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 md:grid-cols-5">
+
+      {/* Search */}
+      <input
+        type="text"
+
+        defaultValue={search}
+
+        placeholder="Search tickets..."
+
+        onChange={(e) =>
+          updateFilter(
+            "search",
+            e.target.value
+          )
+        }
+
+        className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-black dark:border-zinc-700 dark:bg-zinc-950"
+      />
+
+      {/* Status */}
+      <select
+        value={status}
+
+        onChange={(e) =>
+          updateFilter(
+            "status",
+            e.target.value
+          )
+        }
+
+        className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-black dark:border-zinc-700 dark:bg-zinc-950"
+      >
+
+        <option value="">
+          All Statuses
+        </option>
+
+        <option value="OPEN">
+          OPEN
+        </option>
+
+        <option value="IN_PROGRESS">
+          IN PROGRESS
+        </option>
+
+        <option value="RESOLVED">
+          RESOLVED
+        </option>
+
+        <option value="CLOSED">
+          CLOSED
+        </option>
+
+      </select>
+
+      {/* Priority */}
+      <select
+        value={priority}
+
+        onChange={(e) =>
+          updateFilter(
+            "priority",
+            e.target.value
+          )
+        }
+
+        className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-black dark:border-zinc-700 dark:bg-zinc-950"
+      >
+
+        <option value="">
+          All Priorities
+        </option>
+
+        <option value="LOW">
+          LOW
+        </option>
+
+        <option value="MEDIUM">
+          MEDIUM
+        </option>
+
+        <option value="HIGH">
+          HIGH
+        </option>
+
+        <option value="URGENT">
+          URGENT
+        </option>
+
+      </select>
+
+      {/* Assignee */}
+      <select
+        value={assignee}
+
+        onChange={(e) =>
+          updateFilter(
+            "assignee",
+            e.target.value
+          )
+        }
+
+        className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-black dark:border-zinc-700 dark:bg-zinc-950"
+      >
+
+        <option value="">
+          All Assignees
+        </option>
+
+        <option value="unassigned">
+          Unassigned
+        </option>
+
+        {agents.map((agent) => (
+
+          <option
+            key={agent.id}
+            value={agent.id}
+          >
+            {agent.name ||
+              agent.email}
+          </option>
+
+        ))}
+
+      </select>
+
+      {/* Sort */}
+      <select
+        value={sort}
+
+        onChange={(e) =>
+          updateFilter(
+            "sort",
+            e.target.value
+          )
+        }
+
+        className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-black dark:border-zinc-700 dark:bg-zinc-950"
+      >
+
+        <option value="newest">
+          Newest
+        </option>
+
+        <option value="oldest">
+          Oldest
+        </option>
+
+        <option value="priority">
+          Priority
+        </option>
+
+        <option value="sla">
+          SLA Urgency
+        </option>
+
+      </select>
+
+    </div>
+  );
 }
