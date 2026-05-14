@@ -27,7 +27,7 @@ export default async function AnalyticsPage() {
 
     const openTickets =
         tickets.filter(
-            (ticket) => ticket.status === "OPEN"
+            (t: any) => t.status === "OPEN"
         ).length;
 
     const resolvedTickets =
