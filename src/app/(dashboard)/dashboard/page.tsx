@@ -2,19 +2,11 @@ import Link from "next/link";
 
 import {
   Ticket,
+  Clock3,
   AlertTriangle,
   CheckCircle2,
-  Clock3,
   Activity,
-  Users,
-  ArrowRight,
 } from "lucide-react";
-
-import { redirect } from "next/navigation";
-
-import { db } from "@/lib/db";
-
-import { getCurrentTenantUser } from "@/lib/tenant";
 
 import {
   Card,
@@ -23,10 +15,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-import {
-  isTicketOverdue,
-  getRemainingSlaTime,
-} from "@/lib/ticket-sla";
+import { db } from "@/lib/db";
+
+import { redirect } from "next/navigation";
+
+import { getCurrentTenantUser } from "@/lib/tenant";
 
 export default async function DashboardPage() {
 
@@ -37,20 +30,18 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  // =========================
-  // STATS
-  // =========================
+  const organizationId =
+    user.organizationId || undefined;
 
+  // tickets
   const tickets =
     await db.ticket.findMany({
       where: {
-        organizationId:
-          user.organizationId,
+        organizationId,
       },
 
       include: {
         assignedTo: true,
-        createdBy: true,
       },
 
       orderBy: {
@@ -58,12 +49,12 @@ export default async function DashboardPage() {
       },
     });
 
+  // activities
   const activities =
     await db.ticketActivity.findMany({
       where: {
         ticket: {
-          organizationId:
-            user.organizationId,
+          organizationId,
         },
       },
 
@@ -76,24 +67,14 @@ export default async function DashboardPage() {
         createdAt: "desc",
       },
 
-      take: 8,
+      take: 5,
     });
 
-  const customers =
-    await db.user.count({
-      where: {
-        organizationId:
-          user.organizationId,
-
-        role: "CUSTOMER",
-      },
-    });
-
+  // agents
   const agents =
     await db.user.findMany({
       where: {
-        organizationId:
-          user.organizationId,
+        organizationId,
 
         role: {
           in: [
@@ -117,6 +98,27 @@ export default async function DashboardPage() {
       },
     });
 
+  function isTicketOverdue(ticket: {
+    slaDueAt: Date | null;
+    status: string;
+  }) {
+    if (!ticket.slaDueAt) {
+      return false;
+    }
+
+    if (
+      ticket.status === "RESOLVED" ||
+      ticket.status === "CLOSED"
+    ) {
+      return false;
+    }
+
+    return (
+      new Date(ticket.slaDueAt) <
+      new Date()
+    );
+  }
+
   const totalTickets =
     tickets.length;
 
@@ -135,11 +137,11 @@ export default async function DashboardPage() {
     tickets.filter(
       (ticket) =>
         ticket.priority ===
-          "URGENT" &&
+        "URGENT" &&
         ticket.status !==
-          "RESOLVED" &&
+        "RESOLVED" &&
         ticket.status !==
-          "CLOSED"
+        "CLOSED"
     ).length;
 
   const resolvedTickets =
@@ -352,7 +354,6 @@ export default async function DashboardPage() {
                   </div>
 
                 </Link>
-
               )
             )}
 
@@ -360,236 +361,145 @@ export default async function DashboardPage() {
 
         </Card>
 
-        {/* Right Column */}
-        <div className="space-y-6">
+        {/* Team Workload */}
+        <Card className="dark:border-zinc-800 dark:bg-zinc-900">
 
-          {/* Team Workload */}
-          <Card className="dark:border-zinc-800 dark:bg-zinc-900">
+          <CardHeader>
 
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>
+              Team Workload
+            </CardTitle>
 
-              <CardTitle>
-                Team Workload
-              </CardTitle>
+          </CardHeader>
 
-              <Users
-                size={18}
-                className="text-zinc-500"
-              />
+          <CardContent className="space-y-4">
 
-            </CardHeader>
+            {agents.length === 0 && (
 
-            <CardContent className="space-y-4">
+              <div className="rounded-2xl border border-dashed border-zinc-300 p-8 text-center dark:border-zinc-700">
 
-              {agents.length === 0 && (
+                <p className="text-sm text-zinc-500">
+                  No agents found.
+                </p>
 
-                <div className="rounded-2xl border border-dashed border-zinc-300 p-8 text-center dark:border-zinc-700">
+              </div>
 
-                  <p className="text-sm text-zinc-500">
-                    No agents found.
+            )}
+
+            {agents.map((agent) => (
+
+              <div
+                key={agent.id}
+                className="flex items-center justify-between rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800"
+              >
+
+                <div>
+
+                  <p className="font-medium text-zinc-900 dark:text-white">
+                    {agent.name ||
+                      agent.email}
+                  </p>
+
+                  <p className="text-xs uppercase tracking-wide text-zinc-500">
+                    {agent.role}
                   </p>
 
                 </div>
 
-              )}
+                <div className="text-right">
 
-              {agents.map((agent) => (
+                  <p className="text-lg font-bold text-zinc-900 dark:text-white">
 
-                <div
-                  key={agent.id}
-                  className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950"
-                >
+                    {
+                      agent.assignedTickets
+                        .length
+                    }
 
-                  <div className="flex items-center justify-between gap-4">
+                  </p>
 
-                    <div>
-
-                      <h3 className="font-semibold text-zinc-900 dark:text-white">
-                        {agent.name ||
-                          agent.email}
-                      </h3>
-
-                      <p className="mt-1 text-xs text-zinc-500">
-                        {agent.role}
-                      </p>
-
-                    </div>
-
-                    <div className="text-right">
-
-                      <p className="text-2xl font-bold text-zinc-900 dark:text-white">
-
-                        {
-                          agent
-                            .assignedTickets
-                            .length
-                        }
-
-                      </p>
-
-                      <p className="text-xs text-zinc-500">
-                        Active Tickets
-                      </p>
-
-                    </div>
-
-                  </div>
+                  <p className="text-xs text-zinc-500">
+                    Active Tickets
+                  </p>
 
                 </div>
 
-              ))}
+              </div>
+            ))}
 
-            </CardContent>
+          </CardContent>
 
-          </Card>
+        </Card>
 
-          {/* SLA / Urgency */}
-          <Card className="dark:border-zinc-800 dark:bg-zinc-900">
+      </div>
 
-            <CardHeader>
+      {/* Urgent Tickets */}
+      <Card className="dark:border-zinc-800 dark:bg-zinc-900">
 
-              <CardTitle>
-                SLA Watchlist
-              </CardTitle>
+        <CardHeader>
 
-            </CardHeader>
+          <CardTitle>
+            Urgent Ticket Queue
+          </CardTitle>
 
-            <CardContent className="space-y-4">
+        </CardHeader>
 
-              {tickets
-                .filter(
-                  (ticket) =>
-                    ticket.status !==
-                      "RESOLVED" &&
-                    ticket.status !==
-                      "CLOSED"
-                )
-                .slice(0, 5)
-                .map((ticket) => (
+        <CardContent className="space-y-4">
 
-                  <Link
-                    key={ticket.id}
-                    href={`/tickets/${ticket.id}`}
-                    className="block rounded-2xl border border-zinc-200 bg-zinc-50 p-4 transition hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:bg-zinc-800"
-                  >
+          {urgentTickets === 0 && (
 
-                    <div className="flex items-start justify-between gap-4">
+            <div className="rounded-2xl border border-dashed border-zinc-300 p-10 text-center dark:border-zinc-700">
 
-                      <div>
+              <p className="text-sm text-zinc-500">
+                No urgent tickets right now.
+              </p>
 
-                        <h3 className="font-medium text-zinc-900 dark:text-white">
-                          {ticket.title}
-                        </h3>
+            </div>
 
-                        <p className="mt-1 text-xs text-zinc-500">
-                          {ticket.priority}
-                        </p>
+          )}
 
-                      </div>
-
-                      <div>
-
-                        {isTicketOverdue(
-                          ticket
-                        ) ? (
-
-                          <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-medium text-red-700 dark:bg-red-500/10 dark:text-red-400">
-                            Overdue
-                          </span>
-
-                        ) : (
-
-                          <span className="rounded-full bg-zinc-200 px-3 py-1 text-xs font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
-
-                            {
-                              getRemainingSlaTime(
-                                ticket.slaDueAt
-                              )
-                            }
-
-                          </span>
-
-                        )}
-
-                      </div>
-
-                    </div>
-
-                  </Link>
-
-                ))}
+          {tickets
+            .filter(
+              (ticket) =>
+                ticket.priority ===
+                "URGENT" &&
+                ticket.status !==
+                "RESOLVED" &&
+                ticket.status !==
+                "CLOSED"
+            )
+            .slice(0, 5)
+            .map((ticket) => (
 
               <Link
-                href="/tickets"
-                className="mt-2 inline-flex items-center gap-2 text-sm font-medium text-zinc-600 transition hover:text-black dark:text-zinc-400 dark:hover:text-white"
+                key={ticket.id}
+                href={`/tickets/${ticket.id}`}
+                className="flex items-center justify-between rounded-2xl border border-red-200 bg-red-50 p-5 transition hover:bg-red-100 dark:border-red-900 dark:bg-red-950/30 dark:hover:bg-red-950/50"
               >
 
-                View all tickets
+                <div>
 
-                <ArrowRight size={16} />
+                  <h3 className="font-semibold text-zinc-900 dark:text-white">
+                    {ticket.title}
+                  </h3>
+
+                  <p className="mt-1 text-sm text-zinc-500">
+                    Status: {ticket.status}
+                  </p>
+
+                </div>
+
+                <div className="rounded-xl bg-red-100 px-3 py-1 text-xs font-medium text-red-700 dark:bg-red-900 dark:text-red-200">
+
+                  URGENT
+
+                </div>
 
               </Link>
+            ))}
 
-            </CardContent>
+        </CardContent>
 
-          </Card>
-
-        </div>
-
-      </div>
-
-      {/* Secondary Metrics */}
-      <div className="grid gap-5 md:grid-cols-3">
-
-        <Card className="dark:border-zinc-800 dark:bg-zinc-900">
-
-          <CardContent className="p-6">
-
-            <p className="text-sm text-zinc-500">
-              Customers
-            </p>
-
-            <h2 className="mt-3 text-3xl font-bold text-zinc-900 dark:text-white">
-              {customers}
-            </h2>
-
-          </CardContent>
-
-        </Card>
-
-        <Card className="dark:border-zinc-800 dark:bg-zinc-900">
-
-          <CardContent className="p-6">
-
-            <p className="text-sm text-zinc-500">
-              Urgent Active Tickets
-            </p>
-
-            <h2 className="mt-3 text-3xl font-bold text-zinc-900 dark:text-white">
-              {urgentTickets}
-            </h2>
-
-          </CardContent>
-
-        </Card>
-
-        <Card className="dark:border-zinc-800 dark:bg-zinc-900">
-
-          <CardContent className="p-6">
-
-            <p className="text-sm text-zinc-500">
-              SLA Breaches
-            </p>
-
-            <h2 className="mt-3 text-3xl font-bold text-red-600 dark:text-red-400">
-              {overdueTickets}
-            </h2>
-
-          </CardContent>
-
-        </Card>
-
-      </div>
+      </Card>
 
     </div>
   );
