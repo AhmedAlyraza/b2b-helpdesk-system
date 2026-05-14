@@ -60,7 +60,7 @@ export default async function TicketDetailsPage({
         id: ticketId,
 
         organizationId:
-          user.organizationId,
+           user.organizationId || undefined,
       },
 
       include: {
