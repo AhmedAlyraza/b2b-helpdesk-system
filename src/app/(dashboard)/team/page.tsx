@@ -33,7 +33,7 @@ export default async function TeamPage(
         await db.user.findMany({
             where: {
                 organizationId:
-                    user.organizationId,
+                    user.organizationId || undefined,
             },
 
             orderBy: {

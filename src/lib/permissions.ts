@@ -43,7 +43,7 @@ export async function getAuthorizedTicket(
         id: ticketId,
 
         organizationId:
-          user.organizationId,
+          user.organizationId || undefined,
       },
     });
 

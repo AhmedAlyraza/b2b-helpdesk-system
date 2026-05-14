@@ -41,7 +41,7 @@ export default async function CustomersPage({
         await db.user.findMany({
             where: {
                 organizationId:
-                    user.organizationId,
+                   user.organizationId || undefined,
 
                 role: "CUSTOMER",
 

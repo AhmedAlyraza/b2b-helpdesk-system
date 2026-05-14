@@ -135,7 +135,7 @@ export default async function TicketsPage({
     await db.user.findMany({
       where: {
         organizationId:
-          user.organizationId,
+          user.organizationId || undefined,
 
         role: {
           in: [
@@ -158,7 +158,7 @@ export default async function TicketsPage({
 
   const whereClause: Prisma.TicketWhereInput = {
     organizationId:
-      user.organizationId,
+      user.organizationId || undefined,
 
     ...(search && {
       OR: [

@@ -113,7 +113,7 @@ export async function PATCH(
           id: assigneeId,
 
           organizationId:
-            user.organizationId,
+            user.organizationId || undefined,
         },
       });
 

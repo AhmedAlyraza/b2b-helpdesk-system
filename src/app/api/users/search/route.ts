@@ -41,7 +41,7 @@ export async function GET(
             await db.user.findMany({
                 where: {
                     organizationId:
-                        user.organizationId,
+                        user.organizationId || undefined,
 
                     id: {
                         not: user.id,
