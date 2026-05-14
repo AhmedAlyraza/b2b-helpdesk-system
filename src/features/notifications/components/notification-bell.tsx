@@ -1,36 +1,208 @@
+"use client";
+
 import Link from "next/link";
 
 import { Bell } from "lucide-react";
 
-import { db } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
+import { useState } from "react";
 
-export async function NotificationBell() {
-    const user = await getCurrentUser();
+interface Notification {
+  id: string;
 
-    if (!user) return null;
+  title: string;
 
-    const unreadCount =
-        await db.notification.count({
-            where: {
-                userId: user.id,
+  message: string;
 
-                read: false,
-            },
-        });
+  read: boolean;
 
-    return (
-        <Link
-            href="/notifications"
-            className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 bg-white transition hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:bg-zinc-800"
-        >
-            <Bell size={18} />
+  ticketId?: string | null;
+
+  createdAt: string;
+}
+
+interface NotificationBellProps {
+  initialNotifications: Notification[];
+
+  initialUnreadCount: number;
+}
+
+export function NotificationBell({
+  initialNotifications,
+  initialUnreadCount,
+}: NotificationBellProps) {
+
+  const [
+    notifications,
+    setNotifications,
+  ] = useState(
+    initialNotifications
+  );
+
+  const [
+    unreadCount,
+    setUnreadCount,
+  ] = useState(
+    initialUnreadCount
+  );
+
+  async function markAsRead(
+    notificationId: string
+  ) {
+
+    try {
+
+      await fetch(
+        `/api/notifications/${notificationId}/read`,
+        {
+          method: "PATCH",
+        }
+      );
+
+      setNotifications((prev) =>
+        prev.map((notification) =>
+          notification.id ===
+          notificationId
+            ? {
+                ...notification,
+                read: true,
+              }
+            : notification
+        )
+      );
+
+      setUnreadCount((prev) =>
+        Math.max(prev - 1, 0)
+      );
+
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  return (
+    <div className="relative">
+
+      <details className="relative">
+
+        <summary className="flex cursor-pointer list-none items-center">
+
+          <div className="relative">
+
+            <Bell className="h-6 w-6 text-zinc-700 dark:text-zinc-300" />
 
             {unreadCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-                    {unreadCount}
-                </span>
+              <span
+                className="absolute -right-2 -top-2 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white"
+              >
+                {unreadCount}
+              </span>
             )}
-        </Link>
-    );
+
+          </div>
+
+        </summary>
+
+        <div
+          className="absolute right-0 z-50 mt-3 w-96 rounded-2xl border border-zinc-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-900"
+        >
+
+          {/* Header */}
+          <div className="border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
+
+            <div className="flex items-center justify-between">
+
+              <h3 className="font-semibold text-zinc-900 dark:text-white">
+                Notifications
+              </h3>
+
+              <Link
+                href="/notifications"
+                className="text-xs text-blue-500 hover:underline"
+              >
+                View all
+              </Link>
+
+            </div>
+
+          </div>
+
+          {/* Content */}
+          <div className="max-h-[400px] overflow-y-auto">
+
+            {notifications.length === 0 && (
+              <div className="p-6 text-center text-sm text-zinc-500">
+                No notifications
+              </div>
+            )}
+
+            {notifications.map(
+              (notification) => (
+
+                <Link
+                  key={notification.id}
+                  href={
+                    notification.ticketId
+                      ? `/tickets/${notification.ticketId}`
+                      : "/notifications"
+                  }
+                  onClick={() =>
+                    markAsRead(
+                      notification.id
+                    )
+                  }
+                >
+
+                  <div
+                    className={`border-b border-zinc-100 px-4 py-4 transition hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800 ${
+                      !notification.read
+                        ? "bg-blue-50 dark:bg-zinc-800/60"
+                        : ""
+                    }`}
+                  >
+
+                    <div className="flex items-start justify-between gap-3">
+
+                      <div>
+
+                        <p className="font-medium text-zinc-900 dark:text-white">
+                          {notification.title}
+                        </p>
+
+                        <p className="mt-1 text-sm text-zinc-500">
+                          {notification.message}
+                        </p>
+
+                      </div>
+
+                      {!notification.read && (
+                        <span className="mt-1 h-2 w-2 rounded-full bg-blue-500" />
+                      )}
+
+                    </div>
+
+                    <p className="mt-2 text-xs text-zinc-400">
+                      {
+                        new Date(
+                          notification.createdAt
+                        )
+                          .toISOString()
+                          .split("T")[0]
+                      }
+                    </p>
+
+                  </div>
+
+                </Link>
+
+              )
+            )}
+
+          </div>
+
+        </div>
+
+      </details>
+
+    </div>
+  );
 }

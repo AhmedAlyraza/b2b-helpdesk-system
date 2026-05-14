@@ -1,27 +1,76 @@
 import { db } from "@/lib/db";
 
-interface CreateNotificationProps {
-    title: string;
+interface CreateNotificationParams {
+  userId: string;
 
-    message: string;
+  title: string;
 
-    userId: string;
+  message: string;
 
-    ticketId?: string;
+  ticketId?: string;
 }
 
 export async function createNotification({
-    title,
-    message,
-    userId,
-    ticketId,
-}: CreateNotificationProps) {
-    return db.notification.create({
-        data: {
-            title,
-            message,
-            userId,
-            ticketId,
-        },
-    });
+  userId,
+  title,
+  message,
+  ticketId,
+}: CreateNotificationParams) {
+
+  return db.notification.create({
+    data: {
+      userId,
+
+      title,
+
+      message,
+
+      ticketId,
+    },
+  });
+}
+
+export async function markNotificationAsRead(
+  notificationId: string
+) {
+
+  return db.notification.update({
+    where: {
+      id: notificationId,
+    },
+
+    data: {
+      read: true,
+    },
+  });
+}
+
+export async function markAllNotificationsAsRead(
+  userId: string
+) {
+
+  return db.notification.updateMany({
+    where: {
+      userId,
+
+      read: false,
+    },
+
+    data: {
+      read: true,
+    },
+  });
+}
+
+export async function getUnreadNotificationsCount(
+  userId: string
+) {
+
+  return db.notification.count({
+    where: {
+      userId,
+
+      read: false,
+    },
+  });
 }
