@@ -91,7 +91,7 @@ model Invite {
 
   invitedById String
 
-  invitedBy User @relation("UserInvites", fields: [invitedById], references: [id])
+ invitedBy User @relation("UserInvites", fields: [invitedById], references: [id])
 
   createdAt DateTime @default(now())
 }
