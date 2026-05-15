@@ -1,4 +1,11 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
+
+import {
+  Bell,
+  ExternalLink,
+} from "lucide-react";
 
 import {
   Card,
@@ -12,6 +19,16 @@ import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 
 import { getCurrentTenantUser } from "@/lib/tenant";
+
+type DashboardNotification = {
+  id: string;
+  title: string;
+  message: string;
+  read: boolean;
+  userId: string;
+  ticketId: string | null;
+  createdAt: Date;
+};
 
 export default async function NotificationsPage() {
 
@@ -31,7 +48,7 @@ export default async function NotificationsPage() {
       orderBy: {
         createdAt: "desc",
       },
-    });
+    }) as DashboardNotification[];
 
   return (
     <div className="space-y-6">
@@ -53,22 +70,39 @@ export default async function NotificationsPage() {
 
         <CardHeader>
 
-          <CardTitle>
-            All Notifications
-          </CardTitle>
+          <div className="flex items-center gap-3">
+
+            <Bell
+              size={20}
+              className="text-zinc-500"
+            />
+
+            <CardTitle>
+              All Notifications
+            </CardTitle>
+
+          </div>
 
         </CardHeader>
 
         <CardContent className="space-y-4">
 
           {notifications.length === 0 && (
-            <div className="rounded-xl border border-dashed border-zinc-300 p-10 text-center text-sm text-zinc-500 dark:border-zinc-700">
-              No notifications found
+
+            <div className="rounded-2xl border border-dashed border-zinc-300 p-12 text-center dark:border-zinc-700">
+
+              <p className="text-sm text-zinc-500">
+                No notifications found
+              </p>
+
             </div>
+
           )}
 
           {notifications.map(
-            (notification) => (
+            (
+              notification: DashboardNotification
+            ) => (
 
               <Link
                 key={notification.id}
@@ -77,6 +111,7 @@ export default async function NotificationsPage() {
                     ? `/tickets/${notification.ticketId}`
                     : "#"
                 }
+                className="block"
               >
 
                 <div
@@ -89,37 +124,70 @@ export default async function NotificationsPage() {
 
                   <div className="flex items-start justify-between gap-4">
 
-                    <div>
+                    <div className="min-w-0 flex-1">
 
-                      <h3 className="font-semibold text-zinc-900 dark:text-white">
-                        {notification.title}
-                      </h3>
+                      <div className="flex items-center gap-2">
 
-                      <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                        <h3 className="font-semibold text-zinc-900 dark:text-white">
+
+                          {notification.title}
+
+                        </h3>
+
+                        {!notification.read && (
+
+                          <span className="rounded-full bg-blue-500 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-white">
+
+                            New
+
+                          </span>
+
+                        )}
+
+                      </div>
+
+                      <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+
                         {notification.message}
+
                       </p>
 
                     </div>
 
-                    {!notification.read && (
-                      <span className="rounded-full bg-blue-500 px-2 py-1 text-xs font-medium text-white">
-                        New
-                      </span>
+                    {notification.ticketId && (
+
+                      <ExternalLink
+                        size={16}
+                        className="shrink-0 text-zinc-400"
+                      />
+
                     )}
 
                   </div>
 
-                  <p className="mt-4 text-xs text-zinc-400">
+                  <div className="mt-4 flex items-center justify-between">
 
-                    {
-                      new Date(
-                        notification.createdAt
-                      )
-                        .toISOString()
-                        .split("T")[0]
-                    }
+                    <p className="text-xs text-zinc-400">
 
-                  </p>
+                      {
+                        new Date(
+                          notification.createdAt
+                        )
+                          .toISOString()
+                          .split("T")[0]
+                      }
+
+                    </p>
+
+                    <p className="text-xs text-zinc-400">
+
+                      {notification.read
+                        ? "Read"
+                        : "Unread"}
+
+                    </p>
+
+                  </div>
 
                 </div>
 

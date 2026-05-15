@@ -1,108 +1,112 @@
 import { db } from "@/lib/db";
 
 interface ProcessMentionsProps {
-    commentId: string;
+  commentId: string;
 
-    message: string;
+  message: string;
 
-    organizationId: string;
+  organizationId: string;
 
-    authorId: string;
+  authorId: string;
 
-    ticketId: string;
+  ticketId: string;
 }
 
+type MentionUser = {
+  id: string;
+  email: string;
+};
+
 export async function processMentions({
-    commentId,
-    message,
-    organizationId,
-    authorId,
-    ticketId,
+  commentId,
+  message,
+  organizationId,
+  authorId,
+  ticketId,
 }: ProcessMentionsProps) {
 
-    // =========================
-    // FIND @mentions
-    // =========================
-    const mentionMatches =
-        message.match(
-            /@([a-zA-Z0-9._-]+)/g
-        ) || [];
 
-    if (
-        mentionMatches.length === 0
-    ) {
-        return;
-    }
+  const mentionMatches =
+    message.match(
+      /@([a-zA-Z0-9._-]+)/g
+    ) || [];
 
-    const usernames =
-        mentionMatches.map(
-            (mention) =>
-                mention
-                    .replace("@", "")
-                    .toLowerCase()
-        );
+  if (
+    mentionMatches.length === 0
+  ) {
+    return;
+  }
 
-    // =========================
-    // FIND USERS
-    // =========================
-    const users =
-        await db.user.findMany({
-            where: {
-                organizationId,
+  const usernames =
+    mentionMatches.map(
+      (mention: string) =>
+        mention
+          .replace("@", "")
+          .toLowerCase()
+    );
 
-                id: {
-                    not: authorId,
-                },
 
-                OR: usernames.map(
-                    (username) => ({
-                        email: {
-                            startsWith:
-                                username,
-                            mode:
-                                "insensitive",
-                        },
-                    })
-                ),
+  const users =
+    await db.user.findMany({
+      where: {
+        organizationId,
+
+        id: {
+          not: authorId,
+        },
+
+        OR: usernames.map(
+          (
+            username: string
+          ) => ({
+            email: {
+              startsWith:
+                username,
+
+              mode:
+                "insensitive",
             },
-        });
-
-    if (users.length === 0) {
-        return;
-    }
-
-    // =========================
-    // CREATE MENTIONS
-    // =========================
-    await db.mention.createMany({
-        data: users.map(
-            (user) => ({
-                commentId,
-
-                mentionedUserId:
-                    user.id,
-            })
+          })
         ),
+      },
+    }) as MentionUser[];
 
-        skipDuplicates: true,
-    });
+  if (users.length === 0) {
+    return;
+  }
 
-    // =========================
-    // CREATE NOTIFICATIONS
-    // =========================
-    await db.notification.createMany({
-        data: users.map(
-            (user) => ({
-                userId: user.id,
 
-                title:
-                    "You were mentioned",
+  await db.mention.createMany({
+    data: users.map(
+      (
+        user: MentionUser
+      ) => ({
+        commentId,
 
-                message:
-                    "You were mentioned in a ticket comment",
+        mentionedUserId:
+          user.id,
+      })
+    ),
 
-                ticketId,
-            })
-        ),
-    });
+    skipDuplicates: true,
+  });
+
+
+  await db.notification.createMany({
+    data: users.map(
+      (
+        user: MentionUser
+      ) => ({
+        userId: user.id,
+
+        title:
+          "You were mentioned",
+
+        message:
+          "You were mentioned in a ticket comment",
+
+        ticketId,
+      })
+    ),
+  });
 }

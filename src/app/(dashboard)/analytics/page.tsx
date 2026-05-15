@@ -1,7 +1,10 @@
+export const dynamic = "force-dynamic";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 
 import { AnalyticsCharts } from "@/features/analytics/components/analytics-charts";
+
+import { Ticket } from "@prisma/client";
 
 export default async function AnalyticsPage() {
     const user = await getCurrentUser();
@@ -10,10 +13,12 @@ export default async function AnalyticsPage() {
         return null;
     }
 
+    const organizationId =
+        user.organizationId || undefined;
+
     const tickets = await db.ticket.findMany({
         where: {
-            organizationId:
-                user.organizationId!,
+            organizationId,
         },
 
         include: {
@@ -27,18 +32,18 @@ export default async function AnalyticsPage() {
 
     const openTickets =
         tickets.filter(
-            (t: any) => t.status === "OPEN"
+            (t: Ticket) => t.status === "OPEN"
         ).length;
 
     const resolvedTickets =
         tickets.filter(
-            (ticket) =>
+            (ticket: any) =>
                 ticket.status === "RESOLVED"
         ).length;
 
     const urgentTickets =
         tickets.filter(
-            (ticket) =>
+            (ticket: any) =>
                 ticket.priority === "URGENT"
         ).length;
 
@@ -47,7 +52,7 @@ export default async function AnalyticsPage() {
         {
             name: "Open",
             value: tickets.filter(
-                (ticket) =>
+                (ticket: any) =>
                     ticket.status === "OPEN"
             ).length,
         },
@@ -55,7 +60,7 @@ export default async function AnalyticsPage() {
         {
             name: "In Progress",
             value: tickets.filter(
-                (ticket) =>
+                (ticket: any) =>
                     ticket.status ===
                     "IN_PROGRESS"
             ).length,
@@ -64,7 +69,7 @@ export default async function AnalyticsPage() {
         {
             name: "Resolved",
             value: tickets.filter(
-                (ticket) =>
+                (ticket: any) =>
                     ticket.status ===
                     "RESOLVED"
             ).length,
@@ -73,7 +78,7 @@ export default async function AnalyticsPage() {
         {
             name: "Closed",
             value: tickets.filter(
-                (ticket) =>
+                (ticket: any) =>
                     ticket.status ===
                     "CLOSED"
             ).length,
@@ -84,7 +89,7 @@ export default async function AnalyticsPage() {
     const agentMap =
         new Map();
 
-    tickets.forEach((ticket) => {
+    tickets.forEach((ticket: any) => {
         if (
             ticket.assignedTo
         ) {

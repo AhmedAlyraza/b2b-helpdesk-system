@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import Link from "next/link";
 
 import {
@@ -20,6 +21,49 @@ import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 
 import { getCurrentTenantUser } from "@/lib/tenant";
+
+type DashboardTicket = {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  priority: string;
+  createdAt: Date;
+  slaDueAt: Date | null;
+
+  assignedTo: {
+    id: string;
+    name: string | null;
+    email: string;
+  } | null;
+};
+
+type DashboardActivity = {
+  id: string;
+  message: string;
+  createdAt: Date;
+  ticketId: string;
+
+  actor: {
+    name: string | null;
+    email: string;
+  };
+
+  ticket: {
+    title: string;
+  };
+};
+
+type DashboardAgent = {
+  id: string;
+  name: string | null;
+  email: string;
+  role: string;
+
+  assignedTickets: {
+    id: string;
+  }[];
+};
 
 export default async function DashboardPage() {
 
@@ -47,7 +91,7 @@ export default async function DashboardPage() {
       orderBy: {
         createdAt: "desc",
       },
-    });
+    }) as DashboardTicket[];
 
   // activities
   const activities =
@@ -68,7 +112,7 @@ export default async function DashboardPage() {
       },
 
       take: 5,
-    });
+    }) as DashboardActivity[];
 
   // agents
   const agents =
@@ -96,12 +140,11 @@ export default async function DashboardPage() {
           },
         },
       },
-    });
+    }) as DashboardAgent[];
 
-  function isTicketOverdue(ticket: {
-    slaDueAt: Date | null;
-    status: string;
-  }) {
+  function isTicketOverdue(
+    ticket: DashboardTicket
+  ) {
     if (!ticket.slaDueAt) {
       return false;
     }
@@ -124,29 +167,30 @@ export default async function DashboardPage() {
 
   const openTickets =
     tickets.filter(
-      (ticket) =>
+      (ticket: DashboardTicket) =>
         ticket.status === "OPEN"
     ).length;
 
   const overdueTickets =
     tickets.filter(
-      isTicketOverdue
+      (ticket: DashboardTicket) =>
+        isTicketOverdue(ticket)
     ).length;
 
   const urgentTickets =
     tickets.filter(
-      (ticket) =>
+      (ticket: DashboardTicket) =>
         ticket.priority ===
-        "URGENT" &&
+          "URGENT" &&
         ticket.status !==
-        "RESOLVED" &&
+          "RESOLVED" &&
         ticket.status !==
-        "CLOSED"
+          "CLOSED"
     ).length;
 
   const resolvedTickets =
     tickets.filter(
-      (ticket) =>
+      (ticket: DashboardTicket) =>
         ticket.status ===
         "RESOLVED"
     ).length;
@@ -309,7 +353,9 @@ export default async function DashboardPage() {
             )}
 
             {activities.map(
-              (activity) => (
+              (
+                activity: DashboardActivity
+              ) => (
 
                 <Link
                   key={activity.id}
@@ -386,45 +432,49 @@ export default async function DashboardPage() {
 
             )}
 
-            {agents.map((agent) => (
+            {agents.map(
+              (
+                agent: DashboardAgent
+              ) => (
 
-              <div
-                key={agent.id}
-                className="flex items-center justify-between rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800"
-              >
+                <div
+                  key={agent.id}
+                  className="flex items-center justify-between rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800"
+                >
 
-                <div>
+                  <div>
 
-                  <p className="font-medium text-zinc-900 dark:text-white">
-                    {agent.name ||
-                      agent.email}
-                  </p>
+                    <p className="font-medium text-zinc-900 dark:text-white">
+                      {agent.name ||
+                        agent.email}
+                    </p>
 
-                  <p className="text-xs uppercase tracking-wide text-zinc-500">
-                    {agent.role}
-                  </p>
+                    <p className="text-xs uppercase tracking-wide text-zinc-500">
+                      {agent.role}
+                    </p>
+
+                  </div>
+
+                  <div className="text-right">
+
+                    <p className="text-lg font-bold text-zinc-900 dark:text-white">
+
+                      {
+                        agent.assignedTickets
+                          .length
+                      }
+
+                    </p>
+
+                    <p className="text-xs text-zinc-500">
+                      Active Tickets
+                    </p>
+
+                  </div>
 
                 </div>
-
-                <div className="text-right">
-
-                  <p className="text-lg font-bold text-zinc-900 dark:text-white">
-
-                    {
-                      agent.assignedTickets
-                        .length
-                    }
-
-                  </p>
-
-                  <p className="text-xs text-zinc-500">
-                    Active Tickets
-                  </p>
-
-                </div>
-
-              </div>
-            ))}
+              )
+            )}
 
           </CardContent>
 
@@ -459,43 +509,49 @@ export default async function DashboardPage() {
 
           {tickets
             .filter(
-              (ticket) =>
+              (
+                ticket: DashboardTicket
+              ) =>
                 ticket.priority ===
-                "URGENT" &&
+                  "URGENT" &&
                 ticket.status !==
-                "RESOLVED" &&
+                  "RESOLVED" &&
                 ticket.status !==
-                "CLOSED"
+                  "CLOSED"
             )
             .slice(0, 5)
-            .map((ticket) => (
+            .map(
+              (
+                ticket: DashboardTicket
+              ) => (
 
-              <Link
-                key={ticket.id}
-                href={`/tickets/${ticket.id}`}
-                className="flex items-center justify-between rounded-2xl border border-red-200 bg-red-50 p-5 transition hover:bg-red-100 dark:border-red-900 dark:bg-red-950/30 dark:hover:bg-red-950/50"
-              >
+                <Link
+                  key={ticket.id}
+                  href={`/tickets/${ticket.id}`}
+                  className="flex items-center justify-between rounded-2xl border border-red-200 bg-red-50 p-5 transition hover:bg-red-100 dark:border-red-900 dark:bg-red-950/30 dark:hover:bg-red-950/50"
+                >
 
-                <div>
+                  <div>
 
-                  <h3 className="font-semibold text-zinc-900 dark:text-white">
-                    {ticket.title}
-                  </h3>
+                    <h3 className="font-semibold text-zinc-900 dark:text-white">
+                      {ticket.title}
+                    </h3>
 
-                  <p className="mt-1 text-sm text-zinc-500">
-                    Status: {ticket.status}
-                  </p>
+                    <p className="mt-1 text-sm text-zinc-500">
+                      Status: {ticket.status}
+                    </p>
 
-                </div>
+                  </div>
 
-                <div className="rounded-xl bg-red-100 px-3 py-1 text-xs font-medium text-red-700 dark:bg-red-900 dark:text-red-200">
+                  <div className="rounded-xl bg-red-100 px-3 py-1 text-xs font-medium text-red-700 dark:bg-red-900 dark:text-red-200">
 
-                  URGENT
+                    URGENT
 
-                </div>
+                  </div>
 
-              </Link>
-            ))}
+                </Link>
+              )
+            )}
 
         </CardContent>
 

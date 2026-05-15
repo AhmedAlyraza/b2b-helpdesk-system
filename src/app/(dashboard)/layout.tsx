@@ -12,6 +12,16 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 import { OnlineUsers } from "@/features/presence/components/online-users";
 
+type DashboardNotification = {
+  id: string;
+  title: string;
+  message: string;
+  read: boolean;
+  userId: string;
+  ticketId: string | null;
+  createdAt: Date;
+};
+
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
@@ -24,30 +34,33 @@ export default async function DashboardLayout({
     await getCurrentTenantUser();
 
   const notifications =
-    user
-      ? await db.notification.findMany({
-        where: {
-          userId: user.id,
-        },
+    (
+      user
+        ? await db.notification.findMany({
+            where: {
+              userId: user.id,
+            },
 
-        orderBy: {
-          createdAt: "desc",
-        },
+            orderBy: {
+              createdAt: "desc",
+            },
 
-        take: 5,
-      })
-      : [];
+            take: 5,
+          })
+        : []
+    ) as DashboardNotification[];
 
   const unreadCount =
     user
       ? await db.notification.count({
-        where: {
-          userId: user.id,
+          where: {
+            userId: user.id,
 
-          read: false,
-        },
-      })
+            read: false,
+          },
+        })
       : 0;
+
   return (
     <div className="flex min-h-screen bg-zinc-100 dark:bg-zinc-950">
 
@@ -98,7 +111,9 @@ export default async function DashboardLayout({
               <NotificationBell
                 initialNotifications={
                   notifications.map(
-                    (notification) => ({
+                    (
+                      notification: DashboardNotification
+                    ) => ({
                       ...notification,
 
                       createdAt:

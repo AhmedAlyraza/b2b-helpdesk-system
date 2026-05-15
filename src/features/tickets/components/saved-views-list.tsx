@@ -1,110 +1,154 @@
 import Link from "next/link";
 
+import { Bookmark } from "lucide-react";
+
 import { db } from "@/lib/db";
 
 import { getCurrentTenantUser } from "@/lib/tenant";
 
+type SavedViewFilters = {
+  search?: string;
+  status?: string;
+  priority?: string;
+  assignee?: string;
+  sort?: string;
+};
+
+type SavedViewItem = {
+  id: string;
+  name: string;
+  createdAt: Date;
+  filters: SavedViewFilters;
+};
+
 export async function SavedViewsList() {
 
-    const user =
-        await getCurrentTenantUser();
+  const user =
+    await getCurrentTenantUser();
 
-    if (!user) {
-        return null;
-    }
+  if (!user) {
+    return null;
+  }
 
-    const views =
-        await db.savedView.findMany({
-            where: {
-                userId: user.id,
-            },
+  const views =
+    await db.savedView.findMany({
+      where: {
+        userId: user.id,
+      },
 
-            orderBy: {
-                createdAt: "desc",
-            },
-        });
+      orderBy: {
+        createdAt: "desc",
+      },
+    }) as SavedViewItem[];
 
-    if (views.length === 0) {
-        return null;
-    }
+  if (views.length === 0) {
+    return null;
+  }
 
-    return (
-        <div className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+  return (
+    <div className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
 
-            <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">
-                Saved Views
-            </h2>
+      <div className="mb-5 flex items-center gap-3">
 
-            <div className="space-y-2">
+        <Bookmark
+          size={18}
+          className="text-zinc-500"
+        />
 
-                {views.map((view) => {
+        <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">
+          Saved Views
+        </h2>
 
-                    const filters =
-                        view.filters as {
-                            search?: string;
+      </div>
 
-                            status?: string;
+      <div className="space-y-2">
 
-                            priority?: string;
+        {views.map(
+          (
+            view: SavedViewItem
+          ) => {
 
-                            assignee?: string;
+            const filters =
+              view.filters;
 
-                            sort?: string;
-                        };
+            const params =
+              new URLSearchParams();
 
-                    const params =
-                        new URLSearchParams();
+            if (filters.search) {
+              params.set(
+                "search",
+                filters.search
+              );
+            }
 
-                    if (filters.search) {
-                        params.set(
-                            "search",
-                            filters.search
-                        );
-                    }
+            if (filters.status) {
+              params.set(
+                "status",
+                filters.status
+              );
+            }
 
-                    if (filters.status) {
-                        params.set(
-                            "status",
-                            filters.status
-                        );
-                    }
+            if (filters.priority) {
+              params.set(
+                "priority",
+                filters.priority
+              );
+            }
 
-                    if (filters.priority) {
-                        params.set(
-                            "priority",
-                            filters.priority
-                        );
-                    }
+            if (filters.assignee) {
+              params.set(
+                "assignee",
+                filters.assignee
+              );
+            }
 
-                    if (filters.assignee) {
-                        params.set(
-                            "assignee",
-                            filters.assignee
-                        );
-                    }
+            if (filters.sort) {
+              params.set(
+                "sort",
+                filters.sort
+              );
+            }
 
-                    if (filters.sort) {
-                        params.set(
-                            "sort",
-                            filters.sort
-                        );
-                    }
+            return (
+              <Link
+                key={view.id}
+                href={`/tickets?${params.toString()}`}
+                className="block rounded-2xl border border-zinc-200 px-4 py-3 transition hover:bg-zinc-100 dark:border-zinc-800 dark:hover:bg-zinc-800"
+              >
 
-                    return (
-                        <Link
-                            key={view.id}
-                            href={`/tickets?${params.toString()}`}
-                            className="block rounded-2xl border border-zinc-200 px-4 py-3 text-sm transition hover:bg-zinc-100 dark:border-zinc-800 dark:hover:bg-zinc-800"
-                        >
+                <div className="flex items-center justify-between gap-4">
 
-                            {view.name}
+                  <div>
 
-                        </Link>
-                    );
-                })}
+                    <p className="text-sm font-medium text-zinc-900 dark:text-white">
+                      {view.name}
+                    </p>
 
-            </div>
+                    <p className="mt-1 text-xs text-zinc-500">
 
-        </div>
-    );
+                      Created{" "}
+
+                      {
+                        new Date(
+                          view.createdAt
+                        )
+                          .toISOString()
+                          .split("T")[0]
+                      }
+
+                    </p>
+
+                  </div>
+
+                </div>
+
+              </Link>
+            );
+          }
+        )}
+
+      </div>
+
+    </div>
+  );
 }

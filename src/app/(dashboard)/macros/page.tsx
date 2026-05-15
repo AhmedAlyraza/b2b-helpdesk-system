@@ -1,3 +1,6 @@
+
+export const dynamic = "force-dynamic";
+
 import { redirect } from "next/navigation";
 
 import { requireRole } from "@/lib/rbac";

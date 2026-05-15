@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import {
   notFound,
   redirect,
@@ -30,6 +32,52 @@ interface TicketDetailsPageProps {
   }>;
 }
 
+type TicketAttachment = {
+  id: string;
+  name: string;
+  url: string;
+  size: number;
+  createdAt: Date;
+
+  uploader: {
+    id: string;
+    name: string | null;
+    email: string;
+  };
+};
+
+type TicketComment = {
+  id: string;
+  message: string;
+  isInternal: boolean;
+  createdAt: Date;
+
+  author: {
+    id: string;
+    name: string | null;
+    email: string;
+  };
+};
+
+type TicketActivity = {
+  id: string;
+  type: string;
+  message: string;
+  createdAt: Date;
+
+  actor: {
+    id: string;
+    name: string | null;
+    email: string;
+  };
+};
+
+type TicketAgent = {
+  id: string;
+  name: string | null;
+  email: string;
+};
+
 function formatDate(date: Date) {
   return new Date(date)
     .toISOString()
@@ -39,7 +87,9 @@ function formatDate(date: Date) {
 export default async function TicketDetailsPage({
   params,
 }: TicketDetailsPageProps) {
-  const { ticketId } = await params;
+
+  const { ticketId } =
+    await params;
 
   const user =
     await getCurrentTenantUser();
@@ -55,11 +105,13 @@ export default async function TicketDetailsPage({
     await db.ticket.findFirst({
       where: {
         id: ticketId,
+
         organizationId,
       },
 
       include: {
         assignedTo: true,
+
         createdBy: true,
 
         comments: {
@@ -114,7 +166,7 @@ export default async function TicketDetailsPage({
       orderBy: {
         createdAt: "asc",
       },
-    });
+    }) as TicketAgent[];
 
   const macros =
     await db.ticketMacro.findMany({
@@ -269,10 +321,6 @@ export default async function TicketDetailsPage({
                 Attachments
               </h2>
 
-              <p className="text-sm text-zinc-500">
-                Upload and manage ticket files.
-              </p>
-
             </div>
 
           </div>
@@ -293,91 +341,45 @@ export default async function TicketDetailsPage({
 
           )}
 
-          {ticket.attachments.map((attachment) => (
+          {ticket.attachments.map(
+            (
+              attachment: TicketAttachment
+            ) => (
 
-            <a
-              key={attachment.id}
-              href={attachment.url}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center justify-between rounded-2xl border border-zinc-200 p-4 transition hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800"
-            >
+              <a
+                key={attachment.id}
+                href={attachment.url}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-between rounded-2xl border border-zinc-200 p-4 transition hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800"
+              >
 
-              <div>
+                <div>
 
-                <p className="font-medium text-zinc-900 dark:text-white">
-                  {attachment.name}
-                </p>
+                  <p className="font-medium text-zinc-900 dark:text-white">
+                    {attachment.name}
+                  </p>
 
-                <p className="text-xs text-zinc-500">
-                  Uploaded by{" "}
-                  {attachment.uploader.name ||
-                    attachment.uploader.email}
-                </p>
+                  <p className="text-xs text-zinc-500">
+                    Uploaded by{" "}
+                    {attachment.uploader.name ||
+                      attachment.uploader.email}
+                  </p>
 
-              </div>
+                </div>
 
-              <span className="text-xs text-zinc-500">
-                {(attachment.size / 1024).toFixed(1)} KB
-              </span>
+                <span className="text-xs text-zinc-500">
+                  {(attachment.size / 1024).toFixed(1)} KB
+                </span>
 
-            </a>
+              </a>
 
-          ))}
+            )
+          )}
 
         </div>
 
       </section>
-
-      {/* Comments */}
-      <section className="space-y-6 rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-
-        <div className="flex items-center gap-3">
-
-          <MessageSquare
-            className="text-zinc-500"
-            size={22}
-          />
-
-          <div>
-
-            <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">
-              Discussion
-            </h2>
-
-            <p className="text-sm text-zinc-500">
-              Realtime collaborative ticket discussion.
-            </p>
-
-          </div>
-
-        </div>
-
-        <ActiveViewers
-          ticketId={ticket.id}
-          currentUserId={user.id}
-        />
-
-        <CommentForm
-          ticketId={ticket.id}
-        />
-
-        <TypingIndicator
-          ticketId={ticket.id}
-          currentUserId={user.id}
-        />
-
-        <RealtimeComments
-          ticketId={ticket.id}
-          initialComments={ticket.comments}
-        />
-
-      </section>
-
-      <RealtimeActivityFeed
-        ticketId={ticket.id}
-        initialActivities={ticket.activities}
-      />
 
     </div>
   );
