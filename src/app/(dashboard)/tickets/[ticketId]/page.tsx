@@ -200,29 +200,27 @@ export default async function TicketDetailsPage({
               </h1>
 
               <span
-                className={`rounded-full px-3 py-1 text-xs font-medium ${
-                  ticket.status === "OPEN"
+                className={`rounded-full px-3 py-1 text-xs font-medium ${ticket.status === "OPEN"
                     ? "bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400"
                     : ticket.status === "IN_PROGRESS"
-                    ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400"
-                    : ticket.status === "RESOLVED"
-                    ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400"
-                    : "bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300"
-                }`}
+                      ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400"
+                      : ticket.status === "RESOLVED"
+                        ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400"
+                        : "bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300"
+                  }`}
               >
                 {ticket.status.replace("_", " ")}
               </span>
 
               <span
-                className={`rounded-full px-3 py-1 text-xs font-medium ${
-                  ticket.priority === "URGENT"
+                className={`rounded-full px-3 py-1 text-xs font-medium ${ticket.priority === "URGENT"
                     ? "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400"
                     : ticket.priority === "HIGH"
-                    ? "bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400"
-                    : ticket.priority === "MEDIUM"
-                    ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400"
-                    : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
-                }`}
+                      ? "bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400"
+                      : ticket.priority === "MEDIUM"
+                        ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400"
+                        : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                  }`}
               >
                 {ticket.priority}
               </span>
@@ -287,11 +285,11 @@ export default async function TicketDetailsPage({
         initialAssignedTo={
           ticket.assignedTo
             ? {
-                id: ticket.assignedTo.id,
-                name:
-                  ticket.assignedTo.name ||
-                  ticket.assignedTo.email,
-              }
+              id: ticket.assignedTo.id,
+              name:
+                ticket.assignedTo.name ||
+                ticket.assignedTo.email,
+            }
             : null
         }
       />
@@ -376,6 +374,68 @@ export default async function TicketDetailsPage({
 
             )
           )}
+
+        </div>
+
+      </section>
+
+      {/* Comments */}
+      <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+
+        <div className="mb-6 flex items-center gap-3">
+
+          <MessageSquare
+            className="text-zinc-500"
+            size={20}
+          />
+
+          <div>
+
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">
+              Comments
+            </h2>
+
+            <p className="text-sm text-zinc-500">
+              Internal discussion and updates
+            </p>
+
+          </div>
+
+        </div>
+
+        <RealtimeComments
+          ticketId={ticket.id}
+          initialComments={
+            ticket.comments.map(
+              (comment: TicketComment) => ({
+                ...comment,
+
+                createdAt:
+                  comment.createdAt.toISOString(),
+              })
+            )
+          }
+        />
+
+        <div className="mt-6">
+
+          <TypingIndicator
+            ticketId={ticket.id}
+          />
+
+        </div>
+
+        <div className="mt-6">
+
+          <CommentForm
+            ticketId={ticket.id}
+            currentUser={{
+              id: user.id,
+              name:
+                user.name ||
+                user.email,
+            }}
+          />
 
         </div>
 

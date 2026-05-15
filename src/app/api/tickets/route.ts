@@ -8,6 +8,10 @@ import { createActivity } from "@/lib/activity";
 
 import { calculateSlaDueDate } from "@/lib/sla";
 
+import { pusherServer } from "@/lib/pusher";
+
+import { createNotification } from "@/lib/notifications";
+
 export async function POST(req: Request) {
   try {
 
@@ -82,6 +86,54 @@ export async function POST(req: Request) {
 
       message: `Created ticket: ${ticket.title}`,
     });
+
+    // notify admins/agents
+
+    const adminsAndAgents =
+      await db.user.findMany({
+        where: {
+          organizationId:
+            user.organizationId!,
+
+          role: {
+            in: [
+              "ADMIN",
+              "AGENT",
+            ],
+          },
+
+          id: {
+            not: user.id,
+          },
+        },
+      });
+
+    for (const member of adminsAndAgents) {
+
+      const notification =
+        await createNotification({
+          userId: member.id,
+
+          title:
+            "New Ticket Created",
+
+          message: `${user.name || user.email
+            } created ticket: ${ticket.title}`,
+
+          ticketId:
+            ticket.id,
+        });
+
+      await pusherServer.trigger(
+        `user-${member.id}`,
+        "new-notification",
+        {
+          ...notification,
+          createdAt:
+            notification.createdAt.toISOString(),
+        }
+      );
+    }
 
     return NextResponse.json(
       ticket

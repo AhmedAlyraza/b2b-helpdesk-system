@@ -214,18 +214,29 @@ export async function PATCH(
       user.id
     ) {
 
-      await createNotification({
-        userId:
-          ticket.createdById,
+      const creatorNotification =
+        await createNotification({
+          userId:
+            ticket.createdById,
 
-        title:
-          "Ticket Status Updated",
+          title:
+            "Ticket Status Updated",
 
-        message: `Ticket "${ticket.title}" changed to ${status}`,
+          message: `Ticket "${ticket.title}" changed to ${status}`,
 
-        ticketId:
-          ticket.id,
-      });
+          ticketId:
+            ticket.id,
+        });
+
+      await pusherServer.trigger(
+        `user-${ticket.createdById}`,
+        "new-notification",
+        {
+          ...creatorNotification,
+          createdAt:
+            creatorNotification.createdAt.toISOString(),
+        }
+      );
     }
 
     // notify assigned agent
@@ -237,18 +248,29 @@ export async function PATCH(
       ticket.createdById
     ) {
 
-      await createNotification({
-        userId:
-          ticket.assignedToId,
+      const assignedNotification =
+        await createNotification({
+          userId:
+            ticket.assignedToId,
 
-        title:
-          "Ticket Status Updated",
+          title:
+            "Ticket Status Updated",
 
-        message: `Ticket "${ticket.title}" changed to ${status}`,
+          message: `Ticket "${ticket.title}" changed to ${status}`,
 
-        ticketId:
-          ticket.id,
-      });
+          ticketId:
+            ticket.id,
+        });
+
+      await pusherServer.trigger(
+        `user-${ticket.assignedToId}`,
+        "new-notification",
+        {
+          ...assignedNotification,
+          createdAt:
+            assignedNotification.createdAt.toISOString(),
+        }
+      );
     }
 
     return NextResponse.json(

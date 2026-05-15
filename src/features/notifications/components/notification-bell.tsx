@@ -50,6 +50,11 @@ export function NotificationBell({
     initialUnreadCount
   );
 
+  const [
+    open,
+    setOpen,
+  ] = useState(false);
+
   // =========================
   // REALTIME SUBSCRIPTION
   // =========================
@@ -83,7 +88,9 @@ export function NotificationBell({
 
       channel.unbind_all();
 
-      channel.unsubscribe();
+      pusherClient.unsubscribe(
+        `user-${userId}`
+      );
 
     };
 
@@ -92,49 +99,54 @@ export function NotificationBell({
   return (
     <div className="relative">
 
-      <details className="relative">
+      {/* Trigger */}
+      <button
+        type="button"
+        onClick={() =>
+          setOpen(!open)
+        }
+        className="relative flex items-center"
+      >
 
-        <summary className="flex cursor-pointer list-none items-center">
+        <Bell className="h-6 w-6 text-zinc-700 dark:text-zinc-300" />
 
-          <div className="relative">
+        {unreadCount > 0 && (
 
-            <Bell className="h-6 w-6 text-zinc-700 dark:text-zinc-300" />
+          <span className="absolute -right-2 -top-2 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
 
-            {unreadCount > 0 && (
+            {unreadCount}
 
-              <span className="absolute -right-2 -top-2 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
+          </span>
 
-                {unreadCount}
+        )}
 
-              </span>
+      </button>
 
-            )}
+      {/* Dropdown */}
+      {open && (
+
+        <div className="absolute right-0 z-50 mt-3 w-96 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
+
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
+
+            <h3 className="font-semibold text-zinc-900 dark:text-white">
+              Notifications
+            </h3>
+
+            <Link
+              href="/notifications"
+              className="text-xs text-blue-500 hover:underline"
+              onClick={() =>
+                setOpen(false)
+              }
+            >
+              View all
+            </Link>
 
           </div>
 
-        </summary>
-
-        <div className="absolute right-0 z-50 mt-3 w-96 rounded-2xl border border-zinc-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
-
-          <div className="border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
-
-            <div className="flex items-center justify-between">
-
-              <h3 className="font-semibold text-zinc-900 dark:text-white">
-                Notifications
-              </h3>
-
-              <Link
-                href="/notifications"
-                className="text-xs text-blue-500 hover:underline"
-              >
-                View all
-              </Link>
-
-            </div>
-
-          </div>
-
+          {/* Notifications */}
           <div className="max-h-[400px] overflow-y-auto">
 
             {notifications.length === 0 && (
@@ -148,54 +160,77 @@ export function NotificationBell({
             {notifications.map(
               (notification) => (
 
-                <Link
+                <div
                   key={notification.id}
-                  href={
-                    notification.ticketId
-                      ? `/tickets/${notification.ticketId}`
-                      : "/notifications"
-                  }
+                  onClick={async () => {
+
+                    try {
+
+                      await fetch(
+                        `/api/notifications/${notification.id}/read`,
+                        {
+                          method: "PATCH",
+                        }
+                      );
+
+                      setNotifications((prev) =>
+                        prev.map((item) =>
+                          item.id === notification.id
+                            ? {
+                              ...item,
+                              read: true,
+                            }
+                            : item
+                        )
+                      );
+
+                      setUnreadCount((prev) =>
+                        Math.max(prev - 1, 0)
+                      );
+
+                    } catch (error) {
+
+                      console.error(error);
+
+                    }
+
+                    setOpen(false);
+
+                    window.location.href =
+                      notification.ticketId
+                        ? `/tickets/${notification.ticketId}`
+                        : "/notifications";
+
+                  }}
+                  className={`cursor-pointer border-b border-zinc-200 p-4 transition hover:bg-zinc-100 dark:border-zinc-800 dark:hover:bg-zinc-800 ${!notification.read
+                      ? "bg-blue-50 dark:bg-blue-950/20"
+                      : ""
+                    }`}
                 >
 
-                  <div
-                    className={`border-b border-zinc-100 px-4 py-4 transition hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800 ${
-                      !notification.read
-                        ? "bg-blue-50 dark:bg-zinc-800/60"
-                        : ""
-                    }`}
-                  >
+                  <h4 className="font-semibold text-zinc-900 dark:text-white">
 
-                    <div className="flex items-start justify-between gap-3">
+                    {notification.title}
 
-                      <div>
+                  </h4>
 
-                        <p className="font-medium text-zinc-900 dark:text-white">
-                          {notification.title}
-                        </p>
+                  <p className="mt-1 text-sm text-zinc-500">
 
-                        <p className="mt-1 text-sm text-zinc-500">
-                          {notification.message}
-                        </p>
+                    {notification.message}
 
-                      </div>
+                  </p>
 
-                    </div>
+                  <p className="mt-2 text-xs text-zinc-400">
 
-                    <p className="mt-2 text-xs text-zinc-400">
+                    {
+                      new Date(
+                        notification.createdAt
+                      ).toLocaleDateString()
+                    }
 
-                      {
-                        new Date(
-                          notification.createdAt
-                        )
-                          .toISOString()
-                          .split("T")[0]
-                      }
+                  </p>
 
-                    </p>
-
-                  </div>
-
-                </Link>
+                </div>
 
               )
             )}
@@ -204,7 +239,7 @@ export function NotificationBell({
 
         </div>
 
-      </details>
+      )}
 
     </div>
   );

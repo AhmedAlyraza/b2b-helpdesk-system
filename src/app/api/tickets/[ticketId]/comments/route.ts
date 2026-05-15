@@ -182,26 +182,37 @@ export async function POST(
       user.id
     ) {
 
-      await createNotification({
-        userId:
-          ticket.assignedToId,
+      const assignedNotification =
+        await createNotification({
+          userId:
+            ticket.assignedToId,
 
-        title:
-          isInternal
-            ? "New Internal Note"
-            : "New Ticket Comment",
+          title:
+            isInternal
+              ? "New Internal Note"
+              : "New Ticket Comment",
 
-        message: `${user.name ||
-          user.email
-          } ${isInternal
-            ? "added an internal note on"
-            : "commented on"
-          } ticket: ${ticket.title
-          }`,
+          message: `${user.name ||
+            user.email
+            } ${isInternal
+              ? "added an internal note on"
+              : "commented on"
+            } ticket: ${ticket.title
+            }`,
 
-        ticketId:
-          ticket.id,
-      });
+          ticketId:
+            ticket.id,
+        });
+
+      await pusherServer.trigger(
+        `user-${ticket.assignedToId}`,
+        "new-notification",
+        {
+          ...assignedNotification,
+          createdAt:
+            assignedNotification.createdAt.toISOString(),
+        }
+      );
     }
 
     // notify ticket creator
@@ -213,21 +224,32 @@ export async function POST(
       ticket.assignedToId
     ) {
 
-      await createNotification({
-        userId:
-          ticket.createdById,
+      const creatorNotification =
+        await createNotification({
+          userId:
+            ticket.createdById,
 
-        title:
-          "New Ticket Reply",
+          title:
+            "New Ticket Reply",
 
-        message: `${user.name ||
-          user.email
-          } replied to ticket: ${ticket.title
-          }`,
+          message: `${user.name ||
+            user.email
+            } replied to ticket: ${ticket.title
+            }`,
 
-        ticketId:
-          ticket.id,
-      });
+          ticketId:
+            ticket.id,
+        });
+
+      await pusherServer.trigger(
+        `user-${ticket.createdById}`,
+        "new-notification",
+        {
+          ...creatorNotification,
+          createdAt:
+            creatorNotification.createdAt.toISOString(),
+        }
+      );
     }
 
     return NextResponse.json(
