@@ -1,6 +1,3 @@
-
-
-
 import {
   notFound,
   redirect,
@@ -9,10 +6,8 @@ import {
 import {
   Clock3,
   AlertCircle,
-  CheckCircle2,
   Paperclip,
   MessageSquare,
-  Activity,
 } from "lucide-react";
 
 import { db } from "@/lib/db";
@@ -29,7 +24,6 @@ import { ActiveViewers } from "@/features/tickets/components/active-viewers";
 import { RealtimeTicketState } from "@/features/tickets/components/realtime-ticket-state";
 import { RealtimeActivityFeed } from "@/features/tickets/components/realtime-activity-feed";
 
-
 interface TicketDetailsPageProps {
   params: Promise<{
     ticketId: string;
@@ -45,7 +39,6 @@ function formatDate(date: Date) {
 export default async function TicketDetailsPage({
   params,
 }: TicketDetailsPageProps) {
-
   const { ticketId } = await params;
 
   const user =
@@ -62,13 +55,11 @@ export default async function TicketDetailsPage({
     await db.ticket.findFirst({
       where: {
         id: ticketId,
-
         organizationId,
       },
 
       include: {
         assignedTo: true,
-
         createdBy: true,
 
         comments: {
@@ -157,27 +148,29 @@ export default async function TicketDetailsPage({
               </h1>
 
               <span
-                className={`rounded-full px-3 py-1 text-xs font-medium ${ticket.status === "OPEN"
-                  ? "bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400"
-                  : ticket.status === "IN_PROGRESS"
+                className={`rounded-full px-3 py-1 text-xs font-medium ${
+                  ticket.status === "OPEN"
+                    ? "bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400"
+                    : ticket.status === "IN_PROGRESS"
                     ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400"
                     : ticket.status === "RESOLVED"
-                      ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400"
-                      : "bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300"
-                  }`}
+                    ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400"
+                    : "bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300"
+                }`}
               >
                 {ticket.status.replace("_", " ")}
               </span>
 
               <span
-                className={`rounded-full px-3 py-1 text-xs font-medium ${ticket.priority === "URGENT"
-                  ? "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400"
-                  : ticket.priority === "HIGH"
+                className={`rounded-full px-3 py-1 text-xs font-medium ${
+                  ticket.priority === "URGENT"
+                    ? "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400"
+                    : ticket.priority === "HIGH"
                     ? "bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400"
                     : ticket.priority === "MEDIUM"
-                      ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400"
-                      : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
-                  }`}
+                    ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400"
+                    : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                }`}
               >
                 {ticket.priority}
               </span>
@@ -197,7 +190,9 @@ export default async function TicketDetailsPage({
 
               <div className="flex items-center gap-2">
                 <AlertCircle size={16} />
-                Created by {ticket.createdBy.name || ticket.createdBy.email}
+                Created by{" "}
+                {ticket.createdBy.name ||
+                  ticket.createdBy.email}
               </div>
 
               {ticket.slaDueAt && (
@@ -236,33 +231,24 @@ export default async function TicketDetailsPage({
 
       <RealtimeTicketState
         ticketId={ticket.id}
-
-        initialStatus={
-          ticket.status
-        }
-
+        initialStatus={ticket.status}
         initialAssignedTo={
           ticket.assignedTo
             ? {
-              id:
-                ticket.assignedTo.id,
-
-              name:
-                ticket.assignedTo.name ||
-                ticket.assignedTo.email,
-            }
+                id: ticket.assignedTo.id,
+                name:
+                  ticket.assignedTo.name ||
+                  ticket.assignedTo.email,
+              }
             : null
         }
       />
 
-      {/* Macros */}
       {canManageTicket && (
-
         <ApplyMacroSelect
           ticketId={ticket.id}
           macros={macros}
         />
-
       )}
 
       {/* Attachments */}
@@ -272,7 +258,10 @@ export default async function TicketDetailsPage({
 
           <div className="flex items-center gap-3">
 
-            <Paperclip className="text-zinc-500" size={20} />
+            <Paperclip
+              className="text-zinc-500"
+              size={20}
+            />
 
             <div>
 
@@ -321,7 +310,9 @@ export default async function TicketDetailsPage({
                 </p>
 
                 <p className="text-xs text-zinc-500">
-                  Uploaded by {attachment.uploader.name || attachment.uploader.email}
+                  Uploaded by{" "}
+                  {attachment.uploader.name ||
+                    attachment.uploader.email}
                 </p>
 
               </div>
@@ -343,7 +334,10 @@ export default async function TicketDetailsPage({
 
         <div className="flex items-center gap-3">
 
-          <MessageSquare className="text-zinc-500" size={22} />
+          <MessageSquare
+            className="text-zinc-500"
+            size={22}
+          />
 
           <div>
 
@@ -380,15 +374,11 @@ export default async function TicketDetailsPage({
 
       </section>
 
-      {/* Activity */}
       <RealtimeActivityFeed
         ticketId={ticket.id}
-        initialActivities={
-          ticket.activities
-        }
+        initialActivities={ticket.activities}
       />
 
     </div>
   );
 }
-
